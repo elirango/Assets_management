@@ -1,0 +1,86 @@
+// Prisma schema — Property Management MVP
+// String "enum-like" fields (type/category) are validated in src/lib/constants.ts
+// so the Hebrew labels live in one place.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Property {
+  id        String   @id @default(cuid())
+  name      String
+  address   String
+  city      String
+  type      String   @default("APARTMENT") // APARTMENT | HOUSE | COMMERCIAL | PARKING | OTHER
+  rooms     Float?
+  sizeSqm   Float?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenants   Tenant[]
+  expenses  Expense[]
+  reminders Reminder[]
+}
+
+model Tenant {
+  id            String    @id @default(cuid())
+  fullName      String
+  phone         String?
+  email         String?
+  idNumber      String?
+  monthlyRent   Float?
+  contractStart DateTime?
+  contractEnd   DateTime?
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  propertyId String?
+  property   Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+
+  reminders Reminder[]
+
+  @@index([propertyId])
+}
+
+model Expense {
+  id        String   @id @default(cuid())
+  title     String
+  category  String   @default("REPAIR") // REPAIR | MAINTENANCE | TAX | INSURANCE | UTILITY | OTHER
+  amount    Float
+  date      DateTime
+  vendor    String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId, date])
+}
+
+model Reminder {
+  id        String   @id @default(cuid())
+  type      String   @default("OTHER") // CHECK_DEPOSIT | CONTRACT_END | METER_READING | OTHER
+  title     String
+  dueDate   DateTime
+  done      Boolean  @default(false)
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  propertyId String?
+  property   Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+
+  @@index([done, dueDate])
+}
