@@ -96,7 +96,7 @@ export default async function DashboardPage() {
               return (
                 <li key={tenant.id} className="flex items-center justify-between gap-3 p-3 sm:p-4">
                   <div className="min-w-0">
-                    <Link href={`/tenants/${tenant.id}/edit`} className="font-medium text-slate-900 hover:underline">
+                    <Link href={`/tenants/${tenant.id}`} className="font-medium text-slate-900 hover:underline">
                       {tenant.fullName}
                     </Link>
                     <p className="text-sm text-slate-500">

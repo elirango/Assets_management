@@ -11,7 +11,10 @@ export const metadata: Metadata = { title: "דיירים" };
 export default async function TenantsPage() {
   const tenants = await prisma.tenant.findMany({
     orderBy: { fullName: "asc" },
-    include: { property: { select: { id: true, name: true } } },
+    include: {
+      property: { select: { id: true, name: true } },
+      charges: { where: { isPaid: false }, select: { amount: true } },
+    },
   });
   const today = todayUtc();
 
@@ -33,11 +36,14 @@ export default async function TenantsPage() {
         <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white">
           {tenants.map((tenant) => {
             const daysLeft = tenant.contractEnd ? daysBetween(today, tenant.contractEnd) : null;
+            const unpaid = tenant.charges.reduce((sum, charge) => sum + charge.amount, 0);
             return (
               <li key={tenant.id} className="flex items-start gap-3 p-3 sm:items-center sm:p-4">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-semibold text-slate-900">{tenant.fullName}</p>
+                    <Link href={`/tenants/${tenant.id}`} className="font-semibold text-slate-900 hover:underline">
+                      {tenant.fullName}
+                    </Link>
                     {tenant.property ? (
                       <Link href={`/properties/${tenant.property.id}`}>
                         <Badge tone="blue">{tenant.property.name}</Badge>
@@ -45,6 +51,7 @@ export default async function TenantsPage() {
                     ) : (
                       <Badge>ללא נכס</Badge>
                     )}
+                    {unpaid > 0 && <Badge tone="red">חוב פתוח {formatCurrency(unpaid)}</Badge>}
                     {daysLeft != null && daysLeft < 0 && <Badge tone="red">החוזה הסתיים</Badge>}
                     {daysLeft != null && daysLeft >= 0 && daysLeft <= 60 && (
                       <Badge tone="amber">החוזה מסתיים בעוד {daysLeft} ימים</Badge>

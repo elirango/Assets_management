@@ -36,13 +36,13 @@ npm run dev            # http://localhost:3000
 
 ```
 prisma/
-  schema.prisma          # Property, Tenant, Expense, Reminder
+  schema.prisma          # Property, Tenant, Expense, Reminder, Charge, MeterReading
   seed.ts                # Sample data (idempotent)
 src/
   app/                   # App Router pages (all server-rendered, dynamic)
     page.tsx             # Dashboard: stats, upcoming reminders, ending contracts, recent expenses
     properties/          # list · new · [id] (detail) · [id]/edit
-    tenants/             # list · new · [id]/edit
+    tenants/             # list · new · [id] (detail: meter calculator, unpaid charges) · [id]/edit
     expenses/            # list (filter by property) · new · [id]/edit
     reminders/           # list (open / done) · new · [id]/edit
   components/
@@ -55,6 +55,7 @@ src/
     constants.ts         # Enum-like values + Hebrew labels (single source of truth)
     form.ts              # FormData parsing helpers + ActionState
     format.ts            # he-IL date/currency formatting
+    meters.ts            # Utility bill formula ((current − previous) × rate + fixed fee)
     contract.ts          # Contract end default + monthly cheque reminder schedule (UTC-safe)
     actions/             # Server actions: create / update / delete per entity
 ```
@@ -67,4 +68,5 @@ src/
 - **Dates** from `<input type="date">` are stored as UTC midnight and formatted in UTC to avoid off-by-one shifts.
 - **Forms:** server actions return `{ error, values }` on validation failure; forms re-seed inputs from `values` because React resets the form after an action.
 - **Contracts:** `src/lib/contract.ts` derives the default end date (start + 1 year − 1 day) and the cheque schedule (one `CHECK_DEPOSIT` reminder per month on the tenant's `paymentDay` (1–31, clamped to short months, default 10), ~12 for a standard lease). Created with the tenant in one transaction; editing the period replaces the tenant's open cheque reminders.
+- **Utility bills:** the meter calculator on the tenant page saves a `MeterReading` and its `Charge` in one transaction; the fixed fee applies to electricity only. Charges stay listed until marked paid.
 - **Deletes:** `Property` cascades to its expenses and reminders; tenants are detached (`propertyId = null`).

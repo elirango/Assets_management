@@ -10,7 +10,9 @@ const dateFormatter = new Intl.DateTimeFormat("he-IL", {
 const currencyFormatter = new Intl.NumberFormat("he-IL", {
   style: "currency",
   currency: "ILS",
-  maximumFractionDigits: 0,
+  // Whole shekels for rent/expenses, but keep agorot when they exist (utility bills).
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
 });
 
 export function formatDate(date: Date | null | undefined): string {

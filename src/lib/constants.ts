@@ -26,7 +26,19 @@ export const REMINDER_TYPES = {
   OTHER: "אחר",
 } as const;
 
+export const METER_TYPES = {
+  ELECTRICITY: "חשמל",
+  WATER: "מים",
+} as const;
+
+/** Unit shown next to meter readings, per type. */
+export const METER_UNITS: Record<keyof typeof METER_TYPES, string> = {
+  ELECTRICITY: "קוט\"ש",
+  WATER: "מ\"ק",
+};
+
 export type PropertyType = keyof typeof PROPERTY_TYPES;
+export type MeterType = keyof typeof METER_TYPES;
 export type ExpenseCategory = keyof typeof EXPENSE_CATEGORIES;
 export type ReminderType = keyof typeof REMINDER_TYPES;
 
