@@ -16,3 +16,4 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Enum-like columns are plain strings validated against `src/lib/constants.ts`, which also holds the Hebrew labels.
 - Server actions live in `src/lib/actions/*`; on validation failure return `failure(message, formData)` so forms keep the typed values.
 - See README.md for layout and conventions.
+- Contract rules live in `src/lib/contract.ts` (pure, UTC-only, shared by client + server): default end = start + 1 year − 1 day; saving a tenant creates one `CHECK_DEPOSIT` reminder per month on `Tenant.paymentDay` (1–31, clamped to the month length, default 10) inside the contract (update with a changed period replaces the tenant's *open* cheque reminders; delete removes all of the tenant's reminders).

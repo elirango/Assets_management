@@ -3,6 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import {
+  DEFAULT_PAYMENT_DAY,
+  MAX_PAYMENT_DAY,
+  MIN_PAYMENT_DAY,
+  buildCheckDepositReminders,
+  contractEndFromStart,
+  isValidPaymentDay,
+  parseIsoDate,
+} from "@/lib/contract";
 import { type ActionState, failure, getDate, getNumber, getOptionalString, getString } from "@/lib/form";
 
 async function parseTenant(formData: FormData) {
@@ -16,13 +25,23 @@ async function parseTenant(formData: FormData) {
   }
 
   const contractStart = getDate(formData, "contractStart");
-  const contractEnd = getDate(formData, "contractEnd");
+  // The form fills the end date client-side; repeat the rule here so a submit without
+  // JavaScript (or a cleared field) still gets the one-year-minus-one-day default.
+  const contractEnd =
+    getDate(formData, "contractEnd") ??
+    (contractStart ? parseIsoDate(contractEndFromStart(getString(formData, "contractStart"))) : null);
   if (contractStart && contractEnd && contractEnd < contractStart) {
     return failure("תאריך סיום החוזה חייב להיות אחרי תאריך ההתחלה", formData);
   }
 
   const monthlyRent = getNumber(formData, "monthlyRent");
   if (monthlyRent != null && monthlyRent < 0) return failure("שכר הדירה לא יכול להיות שלילי", formData);
+
+  // Empty → default; anything else must be a whole day of month.
+  const paymentDay = getNumber(formData, "paymentDay") ?? DEFAULT_PAYMENT_DAY;
+  if (!isValidPaymentDay(paymentDay)) {
+    return failure(`יום התשלום חייב להיות מספר שלם בין ${MIN_PAYMENT_DAY} ל-${MAX_PAYMENT_DAY}`, formData);
+  }
 
   return {
     data: {
@@ -31,6 +50,7 @@ async function parseTenant(formData: FormData) {
       email: getOptionalString(formData, "email"),
       idNumber: getOptionalString(formData, "idNumber"),
       monthlyRent,
+      paymentDay,
       contractStart,
       contractEnd,
       propertyId,
@@ -42,6 +62,7 @@ async function parseTenant(formData: FormData) {
 function revalidateTenants(propertyId?: string | null) {
   revalidatePath("/");
   revalidatePath("/tenants");
+  revalidatePath("/reminders");
   if (propertyId) revalidatePath(`/properties/${propertyId}`);
 }
 
@@ -49,7 +70,13 @@ export async function createTenant(_prev: ActionState, formData: FormData): Prom
   const parsed = await parseTenant(formData);
   if ("error" in parsed) return parsed;
 
-  await prisma.tenant.create({ data: parsed.data });
+  // Tenant + its monthly cheque reminders are written atomically.
+  await prisma.$transaction(async (tx) => {
+    const tenant = await tx.tenant.create({ data: parsed.data });
+    const reminders = buildCheckDepositReminders(tenant);
+    if (reminders.length > 0) await tx.reminder.createMany({ data: reminders });
+  });
+
   revalidateTenants(parsed.data.propertyId);
   redirect(parsed.data.propertyId ? `/properties/${parsed.data.propertyId}` : "/tenants");
 }
@@ -58,9 +85,30 @@ export async function updateTenant(id: string, _prev: ActionState, formData: For
   const parsed = await parseTenant(formData);
   if ("error" in parsed) return parsed;
 
-  const previous = await prisma.tenant.findUnique({ where: { id }, select: { propertyId: true } });
-  await prisma.tenant.update({ where: { id }, data: parsed.data });
-  revalidateTenants(previous?.propertyId);
+  const previous = await prisma.tenant.findUnique({
+    where: { id },
+    select: { propertyId: true, contractStart: true, contractEnd: true, paymentDay: true },
+  });
+  if (!previous) return failure("הדייר לא נמצא", formData);
+
+  const contractChanged =
+    previous.propertyId !== parsed.data.propertyId ||
+    previous.paymentDay !== parsed.data.paymentDay ||
+    previous.contractStart?.getTime() !== parsed.data.contractStart?.getTime() ||
+    previous.contractEnd?.getTime() !== parsed.data.contractEnd?.getTime();
+
+  await prisma.$transaction(async (tx) => {
+    const tenant = await tx.tenant.update({ where: { id }, data: parsed.data });
+    if (!contractChanged) return;
+
+    // The contract period, payment day or property moved: rebuild the cheque schedule. Reminders already
+    // marked done are kept as history; only the open ones are replaced.
+    await tx.reminder.deleteMany({ where: { tenantId: id, type: "CHECK_DEPOSIT", done: false } });
+    const reminders = buildCheckDepositReminders(tenant);
+    if (reminders.length > 0) await tx.reminder.createMany({ data: reminders });
+  });
+
+  revalidateTenants(previous.propertyId);
   revalidateTenants(parsed.data.propertyId);
   redirect("/tenants");
 }
@@ -69,8 +117,12 @@ export async function deleteTenant(formData: FormData): Promise<void> {
   const id = getString(formData, "id");
   if (!id) return;
 
-  const tenant = await prisma.tenant.delete({ where: { id }, select: { propertyId: true } });
+  // Reminders that belong to the tenant (cheque schedule, contract end) go with it;
+  // the schema only nulls the link, which would leave orphaned reminders behind.
+  const tenant = await prisma.$transaction(async (tx) => {
+    await tx.reminder.deleteMany({ where: { tenantId: id } });
+    return tx.tenant.delete({ where: { id }, select: { propertyId: true } });
+  });
   revalidateTenants(tenant.propertyId);
-  revalidatePath("/reminders");
   redirect("/tenants");
 }

@@ -1,8 +1,17 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { FormActions } from "@/components/forms/form-actions";
 import { Field, FormError, Input, Select, Textarea } from "@/components/ui";
+import {
+  DEFAULT_PAYMENT_DAY,
+  MAX_PAYMENT_DAY,
+  MIN_PAYMENT_DAY,
+  contractEndFromStart,
+  isValidPaymentDay,
+  monthlyDueDates,
+  parseIsoDate,
+} from "@/lib/contract";
 import type { ActionState } from "@/lib/form";
 
 export type TenantFormValues = {
@@ -11,6 +20,7 @@ export type TenantFormValues = {
   email: string;
   idNumber: string;
   monthlyRent: string;
+  paymentDay: string;
   contractStart: string;
   contractEnd: string;
   propertyId: string;
@@ -35,6 +45,42 @@ export function TenantForm({
   const [state, formAction] = useActionState(action, {});
   // On a failed submit React resets the form, so re-seed it with what was typed.
   const values = { ...initial, ...state.values };
+
+  // Contract dates are controlled so the end date can follow the start date.
+  // `endIsAuto` is true while the end date is empty or still equals the derived default;
+  // once the user edits it by hand we stop overriding it.
+  const [contractStart, setContractStart] = useState(values.contractStart ?? "");
+  const [contractEnd, setContractEnd] = useState(values.contractEnd ?? "");
+  const [endIsAuto, setEndIsAuto] = useState(
+    !values.contractEnd || values.contractEnd === contractEndFromStart(values.contractStart ?? ""),
+  );
+
+  function handleStartChange(next: string) {
+    setContractStart(next);
+    if (endIsAuto) setContractEnd(contractEndFromStart(next) ?? "");
+  }
+
+  function handleEndChange(next: string) {
+    setContractEnd(next);
+    setEndIsAuto(next === "" || next === contractEndFromStart(contractStart));
+  }
+
+  const startDate = parseIsoDate(contractStart);
+  const endDate = parseIsoDate(contractEnd);
+
+  // Payment day is controlled too so the preview can react to it; empty means "use the default".
+  const [paymentDayInput, setPaymentDayInput] = useState(values.paymentDay ?? String(DEFAULT_PAYMENT_DAY));
+  const paymentDay = paymentDayInput === "" ? DEFAULT_PAYMENT_DAY : Number(paymentDayInput);
+  const paymentDayValid = isValidPaymentDay(paymentDay);
+  const chequeCount =
+    startDate && endDate && paymentDayValid ? monthlyDueDates(startDate, endDate, paymentDay).length : 0;
+
+  // Editing an existing tenant and moving the contract replaces its open cheque reminders.
+  const isEdit = Boolean(initial?.fullName);
+  const contractChanged =
+    contractStart !== (initial?.contractStart ?? "") ||
+    contractEnd !== (initial?.contractEnd ?? "") ||
+    String(paymentDay) !== (initial?.paymentDay ?? String(DEFAULT_PAYMENT_DAY));
 
   return (
     <form action={formAction} className="space-y-4">
@@ -73,14 +119,64 @@ export function TenantForm({
         </Field>
       </div>
 
+      <Field
+        label="יום תשלום בחודש"
+        required
+        hint={
+          paymentDay > 28
+            ? "בחודשים קצרים יותר התזכורת תיקבע ליום האחרון בחודש (למשל 28 בפברואר)."
+            : `היום בחודש שבו מופקד צ'ק השכירות (${MIN_PAYMENT_DAY}–${MAX_PAYMENT_DAY}).`
+        }
+      >
+        <Input
+          name="paymentDay"
+          type="number"
+          inputMode="numeric"
+          min={MIN_PAYMENT_DAY}
+          max={MAX_PAYMENT_DAY}
+          step="1"
+          required
+          value={paymentDayInput}
+          onChange={(event) => setPaymentDayInput(event.target.value)}
+          aria-invalid={!paymentDayValid || undefined}
+          dir="ltr"
+          className={`text-end sm:max-w-40 ${paymentDayValid ? "" : "border-red-400 focus:border-red-500 focus:ring-red-500/20"}`}
+        />
+      </Field>
+
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="תחילת חוזה">
-          <Input name="contractStart" type="date" defaultValue={values?.contractStart} />
+          <Input
+            name="contractStart"
+            type="date"
+            value={contractStart}
+            onChange={(event) => handleStartChange(event.target.value)}
+          />
         </Field>
-        <Field label="סיום חוזה">
-          <Input name="contractEnd" type="date" defaultValue={values?.contractEnd} />
+        <Field
+          label="סיום חוזה"
+          hint={endIsAuto && contractEnd ? "חושב אוטומטית: שנה פחות יום. ניתן לשנות ידנית." : undefined}
+        >
+          <Input
+            name="contractEnd"
+            type="date"
+            min={contractStart || undefined}
+            value={contractEnd}
+            onChange={(event) => handleEndChange(event.target.value)}
+          />
         </Field>
       </div>
+
+      {startDate && (!isEdit || contractChanged) && (
+        <p role="status" className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-900">
+          {!paymentDayValid
+            ? `יום התשלום חייב להיות בין ${MIN_PAYMENT_DAY} ל-${MAX_PAYMENT_DAY}.`
+            : chequeCount > 0
+              ? `בשמירה ייווצרו ${chequeCount} תזכורות להפקדת צ'ק – ב-${paymentDay} לכל חודש לאורך תקופת החוזה.`
+              : `לא ייווצרו תזכורות להפקדת צ'ק: ה-${paymentDay} בחודש לא נופל בתוך תקופת החוזה.`}
+          {isEdit && " תזכורות פתוחות קיימות להפקדת צ'ק של דייר זה יוחלפו."}
+        </p>
+      )}
 
       <Field label="הערות">
         <Textarea name="notes" maxLength={2000} defaultValue={values?.notes} />

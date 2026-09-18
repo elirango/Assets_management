@@ -31,6 +31,7 @@ const PROPERTY = {
 const TENANT = {
   fullName: "יהודה שאשא (באמצעות שרית שאשא מימון)",
   monthlyRent: 4000,
+  paymentDay: 10,
   contractStart: new Date("2026-08-10"),
   contractEnd: new Date("2027-08-09"),
 };

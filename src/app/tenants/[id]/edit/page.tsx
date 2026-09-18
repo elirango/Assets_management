@@ -36,6 +36,7 @@ export default async function EditTenantPage({ params }: { params: Promise<{ id:
             email: tenant.email ?? "",
             idNumber: tenant.idNumber ?? "",
             monthlyRent: tenant.monthlyRent?.toString() ?? "",
+            paymentDay: String(tenant.paymentDay),
             contractStart: toDateInputValue(tenant.contractStart),
             contractEnd: toDateInputValue(tenant.contractEnd),
             propertyId: tenant.propertyId ?? "",

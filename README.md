@@ -55,6 +55,7 @@ src/
     constants.ts         # Enum-like values + Hebrew labels (single source of truth)
     form.ts              # FormData parsing helpers + ActionState
     format.ts            # he-IL date/currency formatting
+    contract.ts          # Contract end default + monthly cheque reminder schedule (UTC-safe)
     actions/             # Server actions: create / update / delete per entity
 ```
 
@@ -65,4 +66,5 @@ src/
 - **Enums** are stored as strings and validated against the maps in `src/lib/constants.ts`.
 - **Dates** from `<input type="date">` are stored as UTC midnight and formatted in UTC to avoid off-by-one shifts.
 - **Forms:** server actions return `{ error, values }` on validation failure; forms re-seed inputs from `values` because React resets the form after an action.
+- **Contracts:** `src/lib/contract.ts` derives the default end date (start + 1 year − 1 day) and the cheque schedule (one `CHECK_DEPOSIT` reminder per month on the tenant's `paymentDay` (1–31, clamped to short months, default 10), ~12 for a standard lease). Created with the tenant in one transaction; editing the period replaces the tenant's open cheque reminders.
 - **Deletes:** `Property` cascades to its expenses and reminders; tenants are detached (`propertyId = null`).
