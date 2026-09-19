@@ -37,7 +37,20 @@ export const METER_UNITS: Record<keyof typeof METER_TYPES, string> = {
   WATER: "מ\"ק",
 };
 
+/** Recurring charges entered by hand on the tenant page (months × monthly rate). */
+export const MANUAL_CHARGE_TYPES = {
+  TAX: "ארנונה",
+  HOA: "ועד בית",
+} as const;
+
+/** Pre-filled monthly rate per manual charge type; null leaves the field empty. */
+export const MANUAL_CHARGE_DEFAULT_RATE: Record<keyof typeof MANUAL_CHARGE_TYPES, number | null> = {
+  TAX: null,
+  HOA: 40,
+};
+
 export type PropertyType = keyof typeof PROPERTY_TYPES;
+export type ManualChargeType = keyof typeof MANUAL_CHARGE_TYPES;
 export type MeterType = keyof typeof METER_TYPES;
 export type ExpenseCategory = keyof typeof EXPENSE_CATEGORIES;
 export type ReminderType = keyof typeof REMINDER_TYPES;

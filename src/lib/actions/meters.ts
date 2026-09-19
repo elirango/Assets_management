@@ -3,9 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { METER_TYPES, isKeyOf } from "@/lib/constants";
+import { MANUAL_CHARGE_TYPES, METER_TYPES, isKeyOf } from "@/lib/constants";
 import { type ActionState, failure, getDate, getNumber, getString } from "@/lib/form";
 import { todayUtc } from "@/lib/format";
+import { MAX_CHARGE_MONTHS, calculateManualCharge, isValidMonths, manualChargeDescription } from "@/lib/charges";
 import { calculateMeterBill, meterChargeDescription, meterFixedFeeApplies } from "@/lib/meters";
 
 function revalidateTenant(tenantId: string, propertyId?: string | null) {
@@ -52,6 +53,41 @@ export async function createMeterReading(
       data: { tenantId, amount: bill.total, description: meterChargeDescription(type, date), date, isPaid: false },
     });
   });
+
+  revalidateTenant(tenantId, tenant.propertyId);
+  redirect(`/tenants/${tenantId}`);
+}
+
+/**
+ * Saves a hand-entered recurring charge (HOA / property tax) for a tenant.
+ * Amount and description are derived on the server from type × months × rate so a
+ * tampered form cannot post an arbitrary total; a non-empty `description` field wins
+ * over the generated one when the user wants to annotate the charge.
+ * Bound to a tenant id from the tenant page: `createManualCharge.bind(null, tenantId)`.
+ */
+export async function createManualCharge(
+  tenantId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const type = getString(formData, "type");
+  const months = getNumber(formData, "months");
+  const rate = getNumber(formData, "rate");
+  const date = getDate(formData, "date") ?? todayUtc();
+
+  if (!isKeyOf(MANUAL_CHARGE_TYPES, type)) return failure("יש לבחור סוג חיוב", formData);
+  if (months == null || !isValidMonths(months)) {
+    return failure(`מספר החודשים חייב להיות מספר שלם בין 1 ל-${MAX_CHARGE_MONTHS}`, formData);
+  }
+  if (rate == null || rate <= 0) return failure("יש להזין תעריף חודשי גדול מאפס", formData);
+
+  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { id: true, propertyId: true } });
+  if (!tenant) return failure("הדייר לא נמצא", formData);
+
+  const amount = calculateManualCharge(months, rate);
+  const description = getString(formData, "description") || manualChargeDescription(type, months);
+
+  await prisma.charge.create({ data: { tenantId, amount, description, date, isPaid: false } });
 
   revalidateTenant(tenantId, tenant.propertyId);
   redirect(`/tenants/${tenantId}`);

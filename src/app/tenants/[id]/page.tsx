@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DeleteButton, PendingButton } from "@/components/forms/form-actions";
+import { ManualChargeForm } from "@/components/forms/ManualChargeForm";
 import { type LastReadings, MeterCalculatorForm } from "@/components/forms/MeterCalculatorForm";
 import { Badge, Card, DetailRow, EmptyState, LinkButton, PageHeader, SectionTitle } from "@/components/ui";
-import { createMeterReading, deleteCharge, toggleChargePaid } from "@/lib/actions/meters";
+import { createManualCharge, createMeterReading, deleteCharge, toggleChargePaid } from "@/lib/actions/meters";
 import { METER_TYPES, METER_UNITS, type MeterType, isKeyOf, labelOf } from "@/lib/constants";
 import { formatCurrency, formatDate, toDateInputValue, todayUtc } from "@/lib/format";
 
@@ -14,7 +15,10 @@ type Props = { params: Promise<{ id: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const tenant = await prisma.tenant.findUnique({ where: { id }, select: { fullName: true } });
+  const tenant = await prisma.tenant.findUnique({
+    where: { id },
+    select: { fullName: true },
+  });
   return { title: tenant?.fullName ?? "דייר" };
 }
 
@@ -76,38 +80,62 @@ export default async function TenantPage({ params }: Props) {
             </Card>
           </section>
 
-          <section>
-            <SectionTitle>
-              חיובים פתוחים ({tenant.charges.length})
-              {tenant.charges.length > 0 && (
-                <span className="ms-2 text-base font-semibold text-red-700 tabular-nums">{formatCurrency(unpaidTotal)}</span>
+          <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+            <section>
+              <SectionTitle>הוספת חיוב (ארנונה / ועד בית)</SectionTitle>
+              <Card>
+                <ManualChargeForm
+                  action={createManualCharge.bind(null, tenant.id)}
+                  today={toDateInputValue(todayUtc())}
+                />
+              </Card>
+            </section>
+
+            <section>
+              <SectionTitle>
+                חיובים פתוחים ({tenant.charges.length})
+                {tenant.charges.length > 0 && (
+                  <span className="ms-2 text-base font-semibold text-red-700 tabular-nums">
+                    {formatCurrency(unpaidTotal)}
+                  </span>
+                )}
+              </SectionTitle>
+              {tenant.charges.length === 0 ? (
+                <EmptyState
+                  title="אין חיובים פתוחים"
+                  description="חיובי ארנונה, ועד בית ומונים יופיעו כאן עד שיסומנו כשולמו."
+                />
+              ) : (
+                <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white">
+                  {tenant.charges.map((charge) => (
+                    <li key={charge.id} className="flex items-center gap-3 p-3 sm:p-4">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-slate-900">{charge.description}</p>
+                        <p className="text-sm text-slate-500">{formatDate(charge.date)}</p>
+                      </div>
+                      <span className="shrink-0 font-semibold tabular-nums text-slate-900">
+                        {formatCurrency(charge.amount)}
+                      </span>
+                      <div className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center">
+                        <form action={toggleChargePaid}>
+                          <input type="hidden" name="id" value={charge.id} />
+                          <PendingButton variant="secondary" className="min-h-9 px-3 text-sm">
+                            סמן כשולם
+                          </PendingButton>
+                        </form>
+                        <DeleteButton
+                          id={charge.id}
+                          action={deleteCharge}
+                          confirmMessage="למחוק את החיוב?"
+                          variant="ghost"
+                        />
+                      </div>
+                    </li>
+                  ))}
+                </ul>
               )}
-            </SectionTitle>
-            {tenant.charges.length === 0 ? (
-              <EmptyState title="אין חיובים פתוחים" description="חיובים שנוצרו במחשבון המונה יופיעו כאן עד שיסומנו כשולמו." />
-            ) : (
-              <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white">
-                {tenant.charges.map((charge) => (
-                  <li key={charge.id} className="flex items-center gap-3 p-3 sm:p-4">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-slate-900">{charge.description}</p>
-                      <p className="text-sm text-slate-500">{formatDate(charge.date)}</p>
-                    </div>
-                    <span className="shrink-0 font-semibold tabular-nums text-slate-900">{formatCurrency(charge.amount)}</span>
-                    <div className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center">
-                      <form action={toggleChargePaid}>
-                        <input type="hidden" name="id" value={charge.id} />
-                        <PendingButton variant="secondary" className="min-h-9 px-3 text-sm">
-                          סמן כשולם
-                        </PendingButton>
-                      </form>
-                      <DeleteButton id={charge.id} action={deleteCharge} confirmMessage="למחוק את החיוב?" variant="ghost" />
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+            </section>
+          </div>
 
           {tenant.meterReadings.length > 0 && (
             <section>
@@ -126,7 +154,9 @@ export default async function TenantPage({ params }: Props) {
                         {" · "}
                         {formatDate(reading.date)}
                       </div>
-                      <span className="shrink-0 font-semibold tabular-nums text-slate-900">{formatCurrency(reading.totalAmount)}</span>
+                      <span className="shrink-0 font-semibold tabular-nums text-slate-900">
+                        {formatCurrency(reading.totalAmount)}
+                      </span>
                     </li>
                   );
                 })}
@@ -152,13 +182,18 @@ export default async function TenantPage({ params }: Props) {
                 }
               />
               <DetailRow label="אימייל" value={tenant.email ? <span dir="ltr">{tenant.email}</span> : "—"} />
-              <DetailRow label="שכר דירה" value={tenant.monthlyRent != null ? `${formatCurrency(tenant.monthlyRent)} / חודש` : "—"} />
+              <DetailRow
+                label="שכר דירה"
+                value={tenant.monthlyRent != null ? `${formatCurrency(tenant.monthlyRent)} / חודש` : "—"}
+              />
               <DetailRow label="יום תשלום" value={`${tenant.paymentDay} בחודש`} />
               <DetailRow label="תחילת חוזה" value={formatDate(tenant.contractStart)} />
               <DetailRow label="סיום חוזה" value={formatDate(tenant.contractEnd)} />
             </dl>
             {tenant.notes && (
-              <p className="mt-3 whitespace-pre-wrap border-t border-slate-100 pt-3 text-sm text-slate-600">{tenant.notes}</p>
+              <p className="mt-3 whitespace-pre-wrap border-t border-slate-100 pt-3 text-sm text-slate-600">
+                {tenant.notes}
+              </p>
             )}
           </Card>
         </aside>
