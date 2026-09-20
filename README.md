@@ -49,7 +49,8 @@ src/
     app-shell.tsx        # Bottom tab bar (mobile) / sidebar (desktop)
     ui.tsx               # Button, Input, Select, Field, Card, Badge, EmptyState…
     reminder-list.tsx    # Shared reminder list with done-toggle + delete
-    charge-list.tsx      # Shared unpaid-charges list with mark-paid + delete
+    charge-list.tsx      # Shared unpaid-charges list with mark-paid + delete (optional checkboxes)
+    payment-message-panel.tsx # Charge selection + WhatsApp payment message modal (edit, copy, wa.me link)
     forms/               # Client forms using useActionState
   lib/
     prisma.ts            # Lazy PrismaClient singleton (pg adapter, pooled URL)
@@ -58,6 +59,7 @@ src/
     format.ts            # he-IL date/currency formatting
     meters.ts            # Utility bill formula ((current − previous) × rate + fixed fee)
     charges.ts           # Manual HOA / property-tax charges (months × monthly rate)
+    messageGenerator.ts  # Bilingual payment message text; pairs meter charges with their readings
     contract.ts          # Contract end default + monthly cheque reminder schedule (UTC-safe)
     actions/             # Server actions: create / update / delete per entity
 ```
@@ -70,5 +72,5 @@ src/
 - **Dates** from `<input type="date">` are stored as UTC midnight and formatted in UTC to avoid off-by-one shifts.
 - **Forms:** server actions return `{ error, values }` on validation failure; forms re-seed inputs from `values` because React resets the form after an action.
 - **Contracts:** `src/lib/contract.ts` derives the end date from a start date and a duration in months (default 12; "משך חוזה" in the form, not stored) as start + N months − 1 day, month-end aware, plus the cheque schedule (one `CHECK_DEPOSIT` reminder per month on the tenant's `paymentDay`, 1–31 clamped to short months, default 10) and one renewal reminder (`CONTRACT_END`, "חידוש חוזה - <name>") 60 days before the end. All created with the tenant in one transaction; editing the period replaces the tenant's open cheque and renewal reminders.
-- **Utility bills:** the meter calculator on the tenant page saves a `MeterReading` and its `Charge` in one transaction; the fixed fee applies to electricity only. HOA (ועד בית, default ₪40/month) and property-tax (ארנונה) charges are added by hand as months × rate. Charges stay listed until marked paid.
+- **Utility bills:** the meter calculator on the tenant page saves a `MeterReading` and its `Charge` in one transaction; the fixed fee applies to electricity only. HOA (ועד בית, default ₪40/month) and property-tax (ארנונה) charges are added by hand as months × rate. Charges stay listed until marked paid. On the tenant page, selected charges can be turned into a Hebrew/English WhatsApp payment message (meter charges include previous/current readings and consumption).
 - **Deletes:** `Property` cascades to its expenses and reminders; tenants are detached (`propertyId = null`).

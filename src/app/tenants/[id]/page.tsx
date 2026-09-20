@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChargeList } from "@/components/charge-list";
+import { PaymentMessagePanel } from "@/components/payment-message-panel";
 import { ManualChargeForm } from "@/components/forms/ManualChargeForm";
 import { type LastReadings, MeterCalculatorForm } from "@/components/forms/MeterCalculatorForm";
-import { Badge, Card, DetailRow, EmptyState, LinkButton, PageHeader, SectionTitle } from "@/components/ui";
+import { Badge, Card, DetailRow, LinkButton, PageHeader, SectionTitle } from "@/components/ui";
 import { createManualCharge, createMeterReading } from "@/lib/actions/meters";
 import { METER_TYPES, METER_UNITS, type MeterType, isKeyOf, labelOf } from "@/lib/constants";
 import { formatCurrency, formatDate, toDateInputValue, todayUtc } from "@/lib/format";
+import { attachMeterReadings } from "@/lib/messageGenerator";
 
 import { prisma } from "@/lib/prisma";
 
@@ -29,12 +30,15 @@ export default async function TenantPage({ params }: Props) {
     include: {
       property: { select: { id: true, name: true } },
       charges: { where: { isPaid: false }, orderBy: { date: "desc" } },
-      meterReadings: { orderBy: { date: "desc" }, take: 6 },
+      meterReadings: { orderBy: [{ date: "desc" }, { createdAt: "desc" }] },
     },
   });
   if (!tenant) notFound();
 
   const unpaidTotal = tenant.charges.reduce((sum, charge) => sum + charge.amount, 0);
+  // Pair meter charges with their readings so the payment message can quote the meter values.
+  const messageCharges = attachMeterReadings(tenant.charges, tenant.meterReadings);
+  const recentReadings = tenant.meterReadings.slice(0, 6);
 
   // Newest `current` per meter type seeds the calculator's "previous" field.
   const lastReadings: LastReadings = {};
@@ -100,22 +104,20 @@ export default async function TenantPage({ params }: Props) {
                   </span>
                 )}
               </SectionTitle>
-              {tenant.charges.length === 0 ? (
-                <EmptyState
-                  title="אין חיובים פתוחים"
-                  description="חיובי ארנונה, ועד בית ומונים יופיעו כאן עד שיסומנו כשולמו."
-                />
-              ) : (
-                <ChargeList charges={tenant.charges} />
-              )}
+              <PaymentMessagePanel
+                charges={messageCharges}
+                tenantName={tenant.fullName}
+                tenantPhone={tenant.phone}
+                propertyName={tenant.property?.name ?? null}
+              />
             </section>
           </div>
 
-          {tenant.meterReadings.length > 0 && (
+          {recentReadings.length > 0 && (
             <section>
               <SectionTitle>קריאות מונה אחרונות</SectionTitle>
               <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white">
-                {tenant.meterReadings.map((reading) => {
+                {recentReadings.map((reading) => {
                   const type = isKeyOf(METER_TYPES, reading.type) ? (reading.type as MeterType) : null;
                   const unit = type ? METER_UNITS[type] : "";
                   return (
