@@ -5,11 +5,13 @@ import { DeleteButton } from "@/components/forms/form-actions";
 import { Card, PageHeader } from "@/components/ui";
 import { deleteExpense, updateExpense } from "@/lib/actions/expenses";
 import { toDateInputValue } from "@/lib/format";
+import { requireAdminPage } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = { title: "עריכת הוצאה" };
 
 export default async function EditExpensePage({ params }: { params: Promise<{ id: string }> }) {
+  await requireAdminPage();
   const { id } = await params;
   const [expense, properties] = await Promise.all([
     prisma.expense.findUnique({ where: { id } }),

@@ -7,6 +7,7 @@ import { Badge, Card, DetailRow, EmptyState, LinkButton, PageHeader, SectionTitl
 import { deleteProperty } from "@/lib/actions/properties";
 import { EXPENSE_CATEGORIES, PROPERTY_TYPES, labelOf } from "@/lib/constants";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { isAdmin } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 
 type Props = { params: Promise<{ id: string }> };
@@ -34,7 +35,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function PropertyPage({ params }: Props) {
   const { id } = await params;
-  const property = await getProperty(id);
+  const [property, canEdit] = await Promise.all([getProperty(id), isAdmin()]);
   if (!property) notFound();
 
   const totalExpenses = property.expenses.reduce((sum, expense) => sum + expense.amount, 0);
@@ -48,16 +49,18 @@ export default async function PropertyPage({ params }: Props) {
         title={property.name}
         description={`${property.address}, ${property.city}`}
         action={
-          <div className="flex gap-2">
-            <LinkButton href={`/properties/${property.id}/edit`} variant="secondary">
-              עריכה
-            </LinkButton>
-            <DeleteButton
-              id={property.id}
-              action={deleteProperty}
-              confirmMessage="למחוק את הנכס? ההוצאות והתזכורות שלו יימחקו, והדיירים ינותקו ממנו."
-            />
-          </div>
+          canEdit ? (
+            <div className="flex gap-2">
+              <LinkButton href={`/properties/${property.id}/edit`} variant="secondary">
+                עריכה
+              </LinkButton>
+              <DeleteButton
+                id={property.id}
+                action={deleteProperty}
+                confirmMessage="למחוק את הנכס? ההוצאות והתזכורות שלו יימחקו, והדיירים ינותקו ממנו."
+              />
+            </div>
+          ) : undefined
         }
       />
 
@@ -66,9 +69,15 @@ export default async function PropertyPage({ params }: Props) {
           <section>
             <SectionTitle
               action={
-                <LinkButton href={`/tenants/new?propertyId=${property.id}`} variant="secondary" className="min-h-9 px-3 text-sm">
-                  + דייר
-                </LinkButton>
+                canEdit ? (
+                  <LinkButton
+                    href={`/tenants/new?propertyId=${property.id}`}
+                    variant="secondary"
+                    className="min-h-9 px-3 text-sm"
+                  >
+                    + דייר
+                  </LinkButton>
+                ) : undefined
               }
             >
               דיירים ({property.tenants.length})
@@ -105,9 +114,15 @@ export default async function PropertyPage({ params }: Props) {
           <section>
             <SectionTitle
               action={
-                <LinkButton href={`/expenses/new?propertyId=${property.id}`} variant="secondary" className="min-h-9 px-3 text-sm">
-                  + הוצאה
-                </LinkButton>
+                canEdit ? (
+                  <LinkButton
+                    href={`/expenses/new?propertyId=${property.id}`}
+                    variant="secondary"
+                    className="min-h-9 px-3 text-sm"
+                  >
+                    + הוצאה
+                  </LinkButton>
+                ) : undefined
               }
             >
               הוצאות ותיקונים ({property.expenses.length})
@@ -120,7 +135,10 @@ export default async function PropertyPage({ params }: Props) {
                   {property.expenses.map((expense) => (
                     <li key={expense.id} className="flex items-center justify-between gap-3 p-3 sm:p-4">
                       <div className="min-w-0">
-                        <Link href={`/expenses/${expense.id}/edit`} className="font-medium text-slate-900 hover:underline">
+                        <Link
+                          href={`/expenses/${expense.id}/edit`}
+                          className="font-medium text-slate-900 hover:underline"
+                        >
                           {expense.title}
                         </Link>
                         <p className="text-sm text-slate-500">
@@ -128,7 +146,9 @@ export default async function PropertyPage({ params }: Props) {
                           {expense.vendor && ` · ${expense.vendor}`}
                         </p>
                       </div>
-                      <span className="shrink-0 font-semibold tabular-nums text-slate-900">{formatCurrency(expense.amount)}</span>
+                      <span className="shrink-0 font-semibold tabular-nums text-slate-900">
+                        {formatCurrency(expense.amount)}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -143,9 +163,15 @@ export default async function PropertyPage({ params }: Props) {
           <section>
             <SectionTitle
               action={
-                <LinkButton href={`/reminders/new?propertyId=${property.id}`} variant="secondary" className="min-h-9 px-3 text-sm">
-                  + תזכורת
-                </LinkButton>
+                canEdit ? (
+                  <LinkButton
+                    href={`/reminders/new?propertyId=${property.id}`}
+                    variant="secondary"
+                    className="min-h-9 px-3 text-sm"
+                  >
+                    + תזכורת
+                  </LinkButton>
+                ) : undefined
               }
             >
               תזכורות פתוחות ({property.reminders.length})
@@ -153,7 +179,7 @@ export default async function PropertyPage({ params }: Props) {
             {property.reminders.length === 0 ? (
               <EmptyState title="אין תזכורות פתוחות לנכס זה" />
             ) : (
-              <ReminderList reminders={property.reminders} />
+              <ReminderList reminders={property.reminders} readOnly={!canEdit} />
             )}
           </section>
         </div>
@@ -168,7 +194,9 @@ export default async function PropertyPage({ params }: Props) {
               <DetailRow label="נוסף בתאריך" value={formatDate(property.createdAt)} />
             </dl>
             {property.notes && (
-              <p className="mt-3 whitespace-pre-wrap border-t border-slate-100 pt-3 text-sm text-slate-600">{property.notes}</p>
+              <p className="mt-3 whitespace-pre-wrap border-t border-slate-100 pt-3 text-sm text-slate-600">
+                {property.notes}
+              </p>
             )}
           </Card>
         </aside>

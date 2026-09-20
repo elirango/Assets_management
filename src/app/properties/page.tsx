@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Badge, EmptyState, LinkButton, PageHeader } from "@/components/ui";
 import { PROPERTY_TYPES, labelOf } from "@/lib/constants";
+import { isAdmin } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = { title: "נכסים" };
 
 export default async function PropertiesPage() {
+  const canEdit = await isAdmin();
   const properties = await prisma.property.findMany({
     orderBy: { createdAt: "desc" },
     include: { _count: { select: { tenants: true, expenses: true } } },
@@ -17,14 +19,14 @@ export default async function PropertiesPage() {
       <PageHeader
         title="נכסים"
         description={`${properties.length} נכסים`}
-        action={<LinkButton href="/properties/new">+ נכס חדש</LinkButton>}
+        action={canEdit ? <LinkButton href="/properties/new">+ נכס חדש</LinkButton> : undefined}
       />
 
       {properties.length === 0 ? (
         <EmptyState
           title="עדיין אין נכסים"
           description="התחילו בהוספת הנכס הראשון שלכם."
-          action={<LinkButton href="/properties/new">הוספת נכס</LinkButton>}
+          action={canEdit ? <LinkButton href="/properties/new">הוספת נכס</LinkButton> : undefined}
         />
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2">

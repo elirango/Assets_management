@@ -5,11 +5,13 @@ import { TenantForm } from "@/components/forms/tenant-form";
 import { Card, PageHeader } from "@/components/ui";
 import { deleteTenant, updateTenant } from "@/lib/actions/tenants";
 import { toDateInputValue } from "@/lib/format";
+import { requireAdminPage } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = { title: "עריכת דייר" };
 
 export default async function EditTenantPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireAdminPage();
   const { id } = await params;
   const [tenant, properties] = await Promise.all([
     prisma.tenant.findUnique({ where: { id } }),
@@ -40,6 +42,7 @@ export default async function EditTenantPage({ params }: { params: Promise<{ id:
             contractStart: toDateInputValue(tenant.contractStart),
             contractEnd: toDateInputValue(tenant.contractEnd),
             propertyId: tenant.propertyId ?? "",
+            contractUrl: tenant.contractUrl ?? "",
             notes: tenant.notes ?? "",
           }}
           submitLabel="שמירת שינויים"

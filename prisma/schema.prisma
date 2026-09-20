@@ -38,6 +38,7 @@ model Tenant {
   contractStart DateTime?
   contractEnd   DateTime?
   paymentDay    Int       @default(10) // day of month rent cheques are deposited (1-31, clamped to month length)
+  contractUrl   String? // link to the signed contract (e.g. Google Drive)
   notes         String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt

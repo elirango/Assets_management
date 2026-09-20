@@ -9,7 +9,7 @@ import { createManualCharge, createMeterReading } from "@/lib/actions/meters";
 import { METER_TYPES, METER_UNITS, type MeterType, isKeyOf, labelOf } from "@/lib/constants";
 import { formatCurrency, formatDate, toDateInputValue, todayUtc } from "@/lib/format";
 import { attachMeterReadings } from "@/lib/messageGenerator";
-
+import { isAdmin } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 
 type Props = { params: Promise<{ id: string }> };
@@ -34,6 +34,7 @@ export default async function TenantPage({ params }: Props) {
     },
   });
   if (!tenant) notFound();
+  const canEdit = await isAdmin();
 
   const unpaidTotal = tenant.charges.reduce((sum, charge) => sum + charge.amount, 0);
   // Pair meter charges with their readings so the payment message can quote the meter values.
@@ -65,35 +66,41 @@ export default async function TenantPage({ params }: Props) {
           )
         }
         action={
-          <LinkButton href={`/tenants/${tenant.id}/edit`} variant="secondary">
-            עריכת פרטים
-          </LinkButton>
+          canEdit ? (
+            <LinkButton href={`/tenants/${tenant.id}/edit`} variant="secondary">
+              עריכת פרטים
+            </LinkButton>
+          ) : undefined
         }
       />
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          <section>
-            <SectionTitle>מחשבון מונה (חשמל / מים)</SectionTitle>
-            <Card>
-              <MeterCalculatorForm
-                action={createMeterReading.bind(null, tenant.id)}
-                lastReadings={lastReadings}
-                today={toDateInputValue(todayUtc())}
-              />
-            </Card>
-          </section>
-
-          <div className="grid gap-6 xl:grid-cols-2 xl:items-start">
+          {canEdit && (
             <section>
-              <SectionTitle>הוספת חיוב (ארנונה / ועד בית)</SectionTitle>
+              <SectionTitle>מחשבון מונה (חשמל / מים)</SectionTitle>
               <Card>
-                <ManualChargeForm
-                  action={createManualCharge.bind(null, tenant.id)}
+                <MeterCalculatorForm
+                  action={createMeterReading.bind(null, tenant.id)}
+                  lastReadings={lastReadings}
                   today={toDateInputValue(todayUtc())}
                 />
               </Card>
             </section>
+          )}
+
+          <div className={canEdit ? "grid gap-6 xl:grid-cols-2 xl:items-start" : "grid gap-6"}>
+            {canEdit && (
+              <section>
+                <SectionTitle>הוספת חיוב (ארנונה / ועד בית)</SectionTitle>
+                <Card>
+                  <ManualChargeForm
+                    action={createManualCharge.bind(null, tenant.id)}
+                    today={toDateInputValue(todayUtc())}
+                  />
+                </Card>
+              </section>
+            )}
 
             <section>
               <SectionTitle>
@@ -109,6 +116,7 @@ export default async function TenantPage({ params }: Props) {
                 tenantName={tenant.fullName}
                 tenantPhone={tenant.phone}
                 propertyName={tenant.property?.name ?? null}
+                readOnly={!canEdit}
               />
             </section>
           </div>
@@ -165,6 +173,35 @@ export default async function TenantPage({ params }: Props) {
               <DetailRow label="יום תשלום" value={`${tenant.paymentDay} בחודש`} />
               <DetailRow label="תחילת חוזה" value={formatDate(tenant.contractStart)} />
               <DetailRow label="סיום חוזה" value={formatDate(tenant.contractEnd)} />
+              {tenant.contractUrl && (
+                <DetailRow
+                  label="חוזה"
+                  value={
+                    <a
+                      href={tenant.contractUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-blue-700 hover:underline"
+                    >
+                      צפה בחוזה
+                      <svg
+                        className="size-4"
+                        viewBox="0 0 20 20"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        aria-hidden
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M11 3h6v6M17 3l-8 8M15 11v5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"
+                        />
+                      </svg>
+                    </a>
+                  }
+                />
+              )}
             </dl>
             {tenant.notes && (
               <p className="mt-3 whitespace-pre-wrap border-t border-slate-100 pt-3 text-sm text-slate-600">

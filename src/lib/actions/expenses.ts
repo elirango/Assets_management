@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/authz";
 import { EXPENSE_CATEGORIES, isKeyOf } from "@/lib/constants";
 import { type ActionState, failure, getDate, getNumber, getOptionalString, getString } from "@/lib/form";
 
@@ -42,6 +43,7 @@ function revalidateExpenses(propertyId?: string) {
 }
 
 export async function createExpense(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
   const parsed = await parseExpense(formData);
   if ("error" in parsed) return parsed;
 
@@ -51,6 +53,7 @@ export async function createExpense(_prev: ActionState, formData: FormData): Pro
 }
 
 export async function updateExpense(id: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
   const parsed = await parseExpense(formData);
   if ("error" in parsed) return parsed;
 
@@ -62,6 +65,7 @@ export async function updateExpense(id: string, _prev: ActionState, formData: Fo
 }
 
 export async function deleteExpense(formData: FormData): Promise<void> {
+  await requireAdmin();
   const id = getString(formData, "id");
   if (!id) return;
 

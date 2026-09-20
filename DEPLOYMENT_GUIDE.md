@@ -65,16 +65,16 @@ This downloads the Development environment variables into **`.env.local`** (git-
 
 ---
 
-## Step 4 — Push the Prisma schema to the production database
+## Step 4 — Apply the Prisma migrations to the production database
 
 ```bash
-npx prisma db push
+npx prisma migrate deploy
 ```
 
-Prisma reads `POSTGRES_URL_NON_POOLING` from `.env.local` (via `prisma.config.ts`) and creates the `Property`, `Tenant`, `Expense`, and `Reminder` tables. Expected output ends with:
+Prisma reads `POSTGRES_URL_NON_POOLING` from `.env.local` (via `prisma.config.ts`) and applies every migration in `prisma/migrations`. Expected output ends with:
 
 ```
-Your database is now in sync with your Prisma schema.
+All migrations have been successfully applied.
 ```
 
 Optional — load the sample property/tenant/reminders:
@@ -85,9 +85,22 @@ npx prisma db seed
 
 ✅ **Check:** `npx prisma studio` opens a browser showing the four tables (empty, or with the seeded rows).
 
-> If you enabled a separate Preview/Development database in Step 2, repeat `npx vercel env pull --environment=production` + `npx prisma db push` once for Production. With the default single-database setup there is nothing extra to do.
+> If you enabled a separate Preview/Development database in Step 2, repeat `npx vercel env pull --environment=production` + `npx prisma migrate deploy` once for Production. With the default single-database setup there is nothing extra to do.
 
 ---
+
+## Step 4b — Authentication variables
+
+The app requires Google sign-in. In Vercel → Project → **Settings → Environment Variables** add, for Production (and Preview if you use it):
+
+| Variable | Value |
+| --- | --- |
+| `AUTH_SECRET` | `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` |
+| `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | OAuth client (Web application) from Google Cloud Console → APIs & Services → Credentials; add `https://<your-domain>/api/auth/callback/google` as an authorized redirect URI |
+| `ADMIN_EMAIL` | Google account with full access |
+| `VIEWER_EMAIL` | Google account with read-only access |
+
+Or from the CLI: `npx vercel env add AUTH_SECRET production` (repeat per variable), then `npx vercel env pull` locally.
 
 ## Step 5 — Deploy to production
 
@@ -106,6 +119,6 @@ Vercel installs dependencies (running `prisma generate` via `postinstall`), buil
 | Symptom                                                        | Fix                                                                                                                          |
 | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | `Missing database URL. Set POSTGRES_PRISMA_URL…` in Vercel logs | Storage database is not connected to the project (Step 2, "Connect Project"), or the deploy happened before it was connected — redeploy. |
-| `prisma db push` says `Environment variable not found`         | Run `npx vercel env pull` again from the project root and confirm `.env.local` has `POSTGRES_URL_NON_POOLING`.              |
-| `relation "Property" does not exist` at runtime                 | Step 4 was skipped or ran against a different database — run `npx prisma db push` with the production variables.            |
+| `prisma migrate deploy` says `Environment variable not found`  | Run `npx vercel env pull` again from the project root and confirm `.env.local` has `POSTGRES_URL_NON_POOLING`.              |
+| `relation "Property" does not exist` at runtime                 | Step 4 was skipped or ran against a different database — run `npx prisma migrate deploy` with the production variables.            |
 | Local `npm run dev` cannot connect                              | You need `.env.local` from Step 3; the app no longer uses SQLite.                                                            |

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/authz";
 import {
   CONTRACT_REMINDER_TYPES,
   DEFAULT_CONTRACT_MONTHS,
@@ -53,9 +54,15 @@ async function parseTenant(formData: FormData) {
     return failure(`יום התשלום חייב להיות מספר שלם בין ${MIN_PAYMENT_DAY} ל-${MAX_PAYMENT_DAY}`, formData);
   }
 
+  const contractUrl = getOptionalString(formData, "contractUrl");
+  if (contractUrl && !isHttpUrl(contractUrl)) {
+    return failure("קישור לחוזה חייב להתחיל ב-http:// או https://", formData);
+  }
+
   return {
     data: {
       fullName,
+      contractUrl,
       phone: getOptionalString(formData, "phone"),
       email: getOptionalString(formData, "email"),
       idNumber: getOptionalString(formData, "idNumber"),
@@ -69,6 +76,15 @@ async function parseTenant(formData: FormData) {
   };
 }
 
+function isHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 function revalidateTenants(propertyId?: string | null) {
   revalidatePath("/");
   revalidatePath("/tenants");
@@ -77,6 +93,7 @@ function revalidateTenants(propertyId?: string | null) {
 }
 
 export async function createTenant(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
   const parsed = await parseTenant(formData);
   if ("error" in parsed) return parsed;
 
@@ -92,6 +109,7 @@ export async function createTenant(_prev: ActionState, formData: FormData): Prom
 }
 
 export async function updateTenant(id: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
   const parsed = await parseTenant(formData);
   if ("error" in parsed) return parsed;
 
@@ -126,6 +144,7 @@ export async function updateTenant(id: string, _prev: ActionState, formData: For
 }
 
 export async function deleteTenant(formData: FormData): Promise<void> {
+  await requireAdmin();
   const id = getString(formData, "id");
   if (!id) return;
 

@@ -3,12 +3,14 @@ import { ChargeList } from "@/components/charge-list";
 import { ReminderList } from "@/components/reminder-list";
 import { Badge, Card, EmptyState, LinkButton, PageHeader, SectionTitle } from "@/components/ui";
 import { addDays, daysBetween, formatCurrency, formatDate, todayUtc } from "@/lib/format";
+import { isAdmin } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 
 const UPCOMING_REMINDERS = 3;
 const CONTRACT_HORIZON_DAYS = 60;
 
 export default async function DashboardPage() {
+  const canEdit = await isAdmin();
   const today = todayUtc();
   const contractHorizon = addDays(today, CONTRACT_HORIZON_DAYS);
 
@@ -62,20 +64,22 @@ export default async function DashboardPage() {
         />
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <LinkButton href="/expenses/new" variant="secondary">
-          + הוצאה
-        </LinkButton>
-        <LinkButton href="/reminders/new" variant="secondary">
-          + תזכורת
-        </LinkButton>
-        <LinkButton href="/tenants/new" variant="secondary">
-          + דייר
-        </LinkButton>
-        <LinkButton href="/properties/new" variant="secondary">
-          + נכס
-        </LinkButton>
-      </div>
+      {canEdit && (
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <LinkButton href="/expenses/new" variant="secondary">
+            + הוצאה
+          </LinkButton>
+          <LinkButton href="/reminders/new" variant="secondary">
+            + תזכורת
+          </LinkButton>
+          <LinkButton href="/tenants/new" variant="secondary">
+            + דייר
+          </LinkButton>
+          <LinkButton href="/properties/new" variant="secondary">
+            + נכס
+          </LinkButton>
+        </div>
+      )}
 
       {/* Section 1 */}
       <section className="mt-8">
@@ -99,10 +103,10 @@ export default async function DashboardPage() {
           <EmptyState
             title="אין תזכורות קרובות"
             description="הוסיפו תזכורת להפקדת צ׳ק, סיום חוזה או קריאת מונה."
-            action={<LinkButton href="/reminders/new">הוספת תזכורת</LinkButton>}
+            action={canEdit ? <LinkButton href="/reminders/new">הוספת תזכורת</LinkButton> : undefined}
           />
         ) : (
-          <ReminderList reminders={upcomingReminders} />
+          <ReminderList reminders={upcomingReminders} readOnly={!canEdit} />
         )}
       </section>
 
@@ -146,14 +150,24 @@ export default async function DashboardPage() {
         {openCharges.length === 0 ? (
           <EmptyState title="אין חובות פתוחים" description="חיובי ארנונה, ועד בית ומונים שטרם שולמו יופיעו כאן." />
         ) : (
-          <ChargeList charges={openCharges} showTenant />
+          <ChargeList charges={openCharges} showTenant readOnly={!canEdit} />
         )}
       </section>
     </>
   );
 }
 
-function StatCard({ label, value, href, accent }: { label: string; value: string | number; href: string; accent?: string }) {
+function StatCard({
+  label,
+  value,
+  href,
+  accent,
+}: {
+  label: string;
+  value: string | number;
+  href: string;
+  accent?: string;
+}) {
   return (
     <Link href={href} className="block">
       <Card className="h-full transition-shadow hover:shadow-md">

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/authz";
 import { MANUAL_CHARGE_TYPES, METER_TYPES, isKeyOf } from "@/lib/constants";
 import { type ActionState, failure, getDate, getNumber, getString } from "@/lib/form";
 import { todayUtc } from "@/lib/format";
@@ -24,6 +25,7 @@ export async function createMeterReading(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  await requireAdmin();
   const type = getString(formData, "type");
   const previous = getNumber(formData, "previous");
   const current = getNumber(formData, "current");
@@ -70,6 +72,7 @@ export async function createManualCharge(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  await requireAdmin();
   const type = getString(formData, "type");
   const months = getNumber(formData, "months");
   const rate = getNumber(formData, "rate");
@@ -94,6 +97,7 @@ export async function createManualCharge(
 }
 
 export async function toggleChargePaid(formData: FormData): Promise<void> {
+  await requireAdmin();
   const id = getString(formData, "id");
   if (!id) return;
 
@@ -108,6 +112,7 @@ export async function toggleChargePaid(formData: FormData): Promise<void> {
 }
 
 export async function deleteCharge(formData: FormData): Promise<void> {
+  await requireAdmin();
   const id = getString(formData, "id");
   if (!id) return;
 

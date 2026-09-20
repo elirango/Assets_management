@@ -5,12 +5,14 @@ import { Badge, EmptyState, LinkButton, PageHeader } from "@/components/ui";
 import { deleteExpense } from "@/lib/actions/expenses";
 import { EXPENSE_CATEGORIES, labelOf } from "@/lib/constants";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { isAdmin } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = { title: "הוצאות ותיקונים" };
 
 export default async function ExpensesPage({ searchParams }: { searchParams: Promise<{ propertyId?: string }> }) {
   const { propertyId } = await searchParams;
+  const canEdit = await isAdmin();
 
   const [expenses, properties] = await Promise.all([
     prisma.expense.findMany({
@@ -28,7 +30,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
       <PageHeader
         title="הוצאות ותיקונים"
         description={`${expenses.length} רשומות · סה״כ ${formatCurrency(total)}`}
-        action={<LinkButton href="/expenses/new">+ הוצאה חדשה</LinkButton>}
+        action={canEdit ? <LinkButton href="/expenses/new">+ הוצאה חדשה</LinkButton> : undefined}
       />
 
       {properties.length > 1 && (
@@ -37,7 +39,11 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
             הכל
           </FilterChip>
           {properties.map((property) => (
-            <FilterChip key={property.id} href={`/expenses?propertyId=${property.id}`} active={propertyId === property.id}>
+            <FilterChip
+              key={property.id}
+              href={`/expenses?propertyId=${property.id}`}
+              active={propertyId === property.id}
+            >
               {property.name}
             </FilterChip>
           ))}
@@ -48,7 +54,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
         <EmptyState
           title="לא נרשמו הוצאות"
           description="רשמו תיקונים, תחזוקה וחשבונות לכל נכס."
-          action={<LinkButton href="/expenses/new">הוספת הוצאה</LinkButton>}
+          action={canEdit ? <LinkButton href="/expenses/new">הוספת הוצאה</LinkButton> : undefined}
         />
       ) : (
         <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white">
@@ -70,12 +76,22 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
               </div>
               <div className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-3">
                 <span className="font-semibold tabular-nums text-slate-900">{formatCurrency(expense.amount)}</span>
-                <div className="flex items-center">
-                  <Link href={`/expenses/${expense.id}/edit`} className="rounded-lg px-2 py-1 text-sm text-blue-700 hover:bg-blue-50">
-                    עריכה
-                  </Link>
-                  <DeleteButton id={expense.id} action={deleteExpense} confirmMessage="למחוק את ההוצאה?" variant="ghost" />
-                </div>
+                {canEdit && (
+                  <div className="flex items-center">
+                    <Link
+                      href={`/expenses/${expense.id}/edit`}
+                      className="rounded-lg px-2 py-1 text-sm text-blue-700 hover:bg-blue-50"
+                    >
+                      עריכה
+                    </Link>
+                    <DeleteButton
+                      id={expense.id}
+                      action={deleteExpense}
+                      confirmMessage="למחוק את ההוצאה?"
+                      variant="ghost"
+                    />
+                  </div>
+                )}
               </div>
             </li>
           ))}

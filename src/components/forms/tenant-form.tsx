@@ -32,6 +32,7 @@ export type TenantFormValues = {
   contractStart: string;
   contractEnd: string;
   contractMonths: string;
+  contractUrl: string;
   propertyId: string;
   notes: string;
 };
@@ -234,6 +235,19 @@ export function TenantForm({
           {isEdit && " תזכורות פתוחות קיימות (צ'קים וחידוש חוזה) של דייר זה יוחלפו."}
         </p>
       )}
+
+      <Field label="קישור לחוזה (Google Drive)" hint="קישור לקובץ החוזה החתום. יוצג כ״צפה בחוזה״ בעמוד הדייר.">
+        <Input
+          name="contractUrl"
+          type="url"
+          inputMode="url"
+          placeholder="https://drive.google.com/..."
+          maxLength={2000}
+          defaultValue={values?.contractUrl}
+          dir="ltr"
+          className="text-start"
+        />
+      </Field>
 
       <Field label="הערות">
         <Textarea name="notes" maxLength={2000} defaultValue={values?.notes} />

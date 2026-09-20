@@ -3,6 +3,7 @@ import { ReminderForm } from "@/components/forms/reminder-form";
 import { Card, PageHeader } from "@/components/ui";
 import { createReminder } from "@/lib/actions/reminders";
 import { REMINDER_TYPES, isKeyOf } from "@/lib/constants";
+import { requireAdminPage } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = { title: "תזכורת חדשה" };
@@ -12,6 +13,7 @@ export default async function NewReminderPage({
 }: {
   searchParams: Promise<{ propertyId?: string; tenantId?: string; type?: string }>;
 }) {
+  await requireAdminPage();
   const { propertyId, tenantId, type } = await searchParams;
   const [properties, tenants] = await Promise.all([
     prisma.property.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),

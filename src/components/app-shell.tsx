@@ -4,6 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { cx } from "@/components/ui";
+import { signOutAction } from "@/lib/actions/auth";
+
+export type ShellUser = { email: string | null; name: string | null; role: "admin" | "viewer" };
 
 const navItems = [
   { href: "/", label: "ראשי", icon: HomeIcon },
@@ -18,16 +21,25 @@ function isActive(pathname: string, href: string) {
 }
 
 // Mobile: top bar + fixed bottom tab bar. Desktop (md+): fixed sidebar on the start side.
-export function AppShell({ children }: { children: ReactNode }) {
+// Without a signed-in user (login page) the children render bare, with no navigation.
+export function AppShell({ children, user }: { children: ReactNode; user: ShellUser | null }) {
   const pathname = usePathname();
+
+  if (!user) return <>{children}</>;
+
+  const viewer = user.role === "viewer";
 
   return (
     <div className="min-h-dvh">
       <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur md:hidden">
-        <div className="flex h-14 items-center px-4">
+        <div className="flex h-14 items-center justify-between gap-3 px-4">
           <Link href="/" className="text-lg font-bold text-slate-900">
             ניהול נכסים
           </Link>
+          <div className="flex items-center gap-2">
+            {viewer && <ViewerBadge />}
+            <SignOutButton compact />
+          </div>
         </div>
       </header>
 
@@ -55,6 +67,15 @@ export function AppShell({ children }: { children: ReactNode }) {
             );
           })}
         </nav>
+        <div className="border-t border-slate-200 px-4 py-3">
+          <p className="truncate text-sm font-medium text-slate-800" title={user.email ?? undefined}>
+            {user.name ?? user.email}
+          </p>
+          <div className="mt-1 flex items-center justify-between gap-2">
+            {viewer ? <ViewerBadge /> : <span className="text-xs text-slate-500">מנהל</span>}
+            <SignOutButton />
+          </div>
+        </div>
       </aside>
 
       <div className="md:ps-60">
@@ -87,6 +108,30 @@ export function AppShell({ children }: { children: ReactNode }) {
         </ul>
       </nav>
     </div>
+  );
+}
+
+function ViewerBadge() {
+  return (
+    <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">
+      צפייה בלבד
+    </span>
+  );
+}
+
+function SignOutButton({ compact = false }: { compact?: boolean }) {
+  return (
+    <form action={signOutAction}>
+      <button
+        type="submit"
+        className={cx(
+          "rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+          compact ? "min-h-9 px-2 text-sm" : "min-h-8 px-2 text-xs",
+        )}
+      >
+        התנתקות
+      </button>
+    </form>
   );
 }
 

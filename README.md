@@ -2,7 +2,7 @@
 
 Mobile-first, Hebrew/RTL property-management app: properties, tenants, expenses & repairs, and a reminders dashboard (check deposits, contract end dates, meter readings).
 
-**Stack:** Next.js 16 (App Router, Server Actions) · React 19 · Tailwind CSS 4 · Prisma 7 · Vercel Postgres (via `@prisma/adapter-pg`)
+**Stack:** Next.js 16 (App Router, Server Actions) · React 19 · Tailwind CSS 4 · Prisma 7 · Vercel Postgres (via `@prisma/adapter-pg`) · next-auth v5 (Google sign-in, admin / viewer roles)
 
 Deploying? See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md).
 
@@ -14,9 +14,10 @@ The app talks to Vercel Postgres in every environment, so you need the project l
 npm install            # also runs `prisma generate`
 npx vercel link        # once
 npx vercel env pull    # writes .env.local with POSTGRES_PRISMA_URL / POSTGRES_URL_NON_POOLING
-npm run db:push        # create the tables
-npm run db:seed        # optional sample data
-npm run dev            # http://localhost:3000
+npm run db:migrate:deploy  # apply prisma/migrations to the database
+npm run db:seed            # optional sample data
+# then fill in AUTH_* / ADMIN_EMAIL / VIEWER_EMAIL in .env (see .env.example)
+npm run dev                # http://localhost:3000
 ```
 
 ## Scripts
@@ -27,9 +28,9 @@ npm run dev            # http://localhost:3000
 | `npm run build`      | Production build                               |
 | `npm run lint`       | ESLint                                         |
 | `npm run typecheck`  | `tsc --noEmit`                                 |
-| `npm run db:push`    | Sync the schema to the database (`prisma db push`) |
+| `npm run db:migrate:deploy` | Apply pending migrations (`prisma migrate deploy`) |
 | `npm run db:seed`    | Load sample data (`prisma/seed.ts`)            |
-| `npm run db:migrate` | Create/apply a migration (`prisma migrate dev`) |
+| `npm run db:migrate` | Create/apply a migration locally (`prisma migrate dev`; needs a shadow DB) |
 | `npm run db:studio`  | Browse the DB in Prisma Studio                 |
 
 ## Project layout
@@ -37,6 +38,7 @@ npm run dev            # http://localhost:3000
 ```
 prisma/
   schema.prisma          # Property, Tenant, Expense, Reminder, Charge, MeterReading
+  migrations/            # 0_init baseline + incremental migrations
   seed.ts                # Sample data (idempotent)
 src/
   app/                   # App Router pages (all server-rendered, dynamic)
@@ -54,6 +56,8 @@ src/
     forms/               # Client forms using useActionState
   lib/
     prisma.ts            # Lazy PrismaClient singleton (pg adapter, pooled URL)
+    auth.ts              # next-auth config: Google provider, email allow-list, role in the JWT
+    authz.ts             # isAdmin / requireAdmin / requireAdminPage guards
     constants.ts         # Enum-like values + Hebrew labels (single source of truth)
     form.ts              # FormData parsing helpers + ActionState
     format.ts            # he-IL date/currency formatting
@@ -64,6 +68,10 @@ src/
     actions/             # Server actions: create / update / delete per entity
 ```
 
+## Access control
+
+Sign-in is Google-only and limited to two accounts set by environment variables: `ADMIN_EMAIL` (full access) and `VIEWER_EMAIL` (read-only). `src/proxy.ts` sends signed-out visitors to `/login` and keeps the viewer off create/edit pages; every mutating server action calls `requireAdmin()`, so hidden buttons are backed by a server-side check. Viewers still see everything, including the WhatsApp payment-message generator.
+
 ## Conventions
 
 - **RTL:** `<html lang="he" dir="rtl">`; use Tailwind logical utilities (`ms-`, `me-`, `ps-`, `text-start`, `start-0`) instead of left/right.
@@ -73,4 +81,5 @@ src/
 - **Forms:** server actions return `{ error, values }` on validation failure; forms re-seed inputs from `values` because React resets the form after an action.
 - **Contracts:** `src/lib/contract.ts` derives the end date from a start date and a duration in months (default 12; "משך חוזה" in the form, not stored) as start + N months − 1 day, month-end aware, plus the cheque schedule (one `CHECK_DEPOSIT` reminder per month on the tenant's `paymentDay`, 1–31 clamped to short months, default 10) and one renewal reminder (`CONTRACT_END`, "חידוש חוזה - <name>") 60 days before the end. All created with the tenant in one transaction; editing the period replaces the tenant's open cheque and renewal reminders.
 - **Utility bills:** the meter calculator on the tenant page saves a `MeterReading` and its `Charge` in one transaction; the fixed fee applies to electricity only. HOA (ועד בית, default ₪40/month) and property-tax (ארנונה) charges are added by hand as months × rate. Charges stay listed until marked paid. On the tenant page, selected charges can be turned into a Hebrew/English WhatsApp payment message (meter charges include previous/current readings and consumption).
+- **Contract link:** `Tenant.contractUrl` (optional http/https URL, e.g. Google Drive) shows as "צפה בחוזה" on the tenant page.
 - **Deletes:** `Property` cascades to its expenses and reminders; tenants are detached (`propertyId = null`).

@@ -3,11 +3,13 @@ import { notFound } from "next/navigation";
 import { PropertyForm } from "@/components/forms/property-form";
 import { Card, PageHeader } from "@/components/ui";
 import { updateProperty } from "@/lib/actions/properties";
+import { requireAdminPage } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = { title: "עריכת נכס" };
 
 export default async function EditPropertyPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireAdminPage();
   const { id } = await params;
   const property = await prisma.property.findUnique({ where: { id } });
   if (!property) notFound();

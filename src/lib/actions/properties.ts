@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/authz";
 import { PROPERTY_TYPES, isKeyOf } from "@/lib/constants";
 import { type ActionState, failure, getNumber, getOptionalString, getString } from "@/lib/form";
 
@@ -37,6 +38,7 @@ function revalidateProperties(id?: string) {
 }
 
 export async function createProperty(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
   const parsed = parseProperty(formData);
   if ("error" in parsed) return parsed;
 
@@ -50,6 +52,7 @@ export async function updateProperty(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  await requireAdmin();
   const parsed = parseProperty(formData);
   if ("error" in parsed) return parsed;
 
@@ -59,6 +62,7 @@ export async function updateProperty(
 }
 
 export async function deleteProperty(formData: FormData): Promise<void> {
+  await requireAdmin();
   const id = getString(formData, "id");
   if (!id) return;
 

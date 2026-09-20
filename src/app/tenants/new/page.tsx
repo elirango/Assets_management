@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import { TenantForm } from "@/components/forms/tenant-form";
 import { Card, PageHeader } from "@/components/ui";
 import { createTenant } from "@/lib/actions/tenants";
+import { requireAdminPage } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = { title: "דייר חדש" };
 
 export default async function NewTenantPage({ searchParams }: { searchParams: Promise<{ propertyId?: string }> }) {
+  await requireAdminPage();
   const { propertyId } = await searchParams;
   const properties = await prisma.property.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } });
 

@@ -22,11 +22,14 @@ export function PaymentMessagePanel({
   tenantName,
   tenantPhone,
   propertyName,
+  readOnly = false,
 }: {
   charges: MessageCharge[];
   tenantName: string;
   tenantPhone: string | null;
   propertyName: string | null;
+  /** Viewer role: charges cannot be marked paid or deleted, but the message can still be generated. */
+  readOnly?: boolean;
 }) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [language, setLanguage] = useState<MessageLanguage>("he");
@@ -117,7 +120,7 @@ export function PaymentMessagePanel({
         </label>
       )}
 
-      <ChargeList charges={charges} selectedIds={selectedIds} onToggle={toggle} />
+      <ChargeList charges={charges} selectedIds={selectedIds} onToggle={toggle} readOnly={readOnly} />
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-slate-600" aria-live="polite">

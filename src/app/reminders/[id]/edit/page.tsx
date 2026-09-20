@@ -5,11 +5,13 @@ import { ReminderForm } from "@/components/forms/reminder-form";
 import { Card, PageHeader } from "@/components/ui";
 import { deleteReminder, updateReminder } from "@/lib/actions/reminders";
 import { toDateInputValue } from "@/lib/format";
+import { requireAdminPage } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = { title: "עריכת תזכורת" };
 
 export default async function EditReminderPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireAdminPage();
   const { id } = await params;
   const [reminder, properties, tenants] = await Promise.all([
     prisma.reminder.findUnique({ where: { id } }),

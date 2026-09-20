@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/authz";
 import { REMINDER_TYPES, isKeyOf } from "@/lib/constants";
 import { type ActionState, failure, getDate, getOptionalString, getString } from "@/lib/form";
 
@@ -45,6 +46,7 @@ function revalidateReminders(propertyId?: string | null) {
 }
 
 export async function createReminder(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
   const parsed = await parseReminder(formData);
   if ("error" in parsed) return parsed;
 
@@ -54,6 +56,7 @@ export async function createReminder(_prev: ActionState, formData: FormData): Pr
 }
 
 export async function updateReminder(id: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
   const parsed = await parseReminder(formData);
   if ("error" in parsed) return parsed;
 
@@ -65,6 +68,7 @@ export async function updateReminder(id: string, _prev: ActionState, formData: F
 }
 
 export async function toggleReminderDone(formData: FormData): Promise<void> {
+  await requireAdmin();
   const id = getString(formData, "id");
   if (!id) return;
 
@@ -76,6 +80,7 @@ export async function toggleReminderDone(formData: FormData): Promise<void> {
 }
 
 export async function deleteReminder(formData: FormData): Promise<void> {
+  await requireAdmin();
   const id = getString(formData, "id");
   if (!id) return;
 
