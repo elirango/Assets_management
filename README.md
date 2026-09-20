@@ -40,7 +40,7 @@ prisma/
   seed.ts                # Sample data (idempotent)
 src/
   app/                   # App Router pages (all server-rendered, dynamic)
-    page.tsx             # Dashboard: stats, upcoming reminders, ending contracts, recent expenses
+    page.tsx             # Dashboard: stats, next 3 reminders, contracts ending within 60 days, all open charges
     properties/          # list · new · [id] (detail) · [id]/edit
     tenants/             # list · new · [id] (detail: meter calculator, unpaid charges) · [id]/edit
     expenses/            # list (filter by property) · new · [id]/edit
@@ -49,6 +49,7 @@ src/
     app-shell.tsx        # Bottom tab bar (mobile) / sidebar (desktop)
     ui.tsx               # Button, Input, Select, Field, Card, Badge, EmptyState…
     reminder-list.tsx    # Shared reminder list with done-toggle + delete
+    charge-list.tsx      # Shared unpaid-charges list with mark-paid + delete
     forms/               # Client forms using useActionState
   lib/
     prisma.ts            # Lazy PrismaClient singleton (pg adapter, pooled URL)

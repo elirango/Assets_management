@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { DeleteButton, PendingButton } from "@/components/forms/form-actions";
+import { ChargeList } from "@/components/charge-list";
 import { ManualChargeForm } from "@/components/forms/ManualChargeForm";
 import { type LastReadings, MeterCalculatorForm } from "@/components/forms/MeterCalculatorForm";
 import { Badge, Card, DetailRow, EmptyState, LinkButton, PageHeader, SectionTitle } from "@/components/ui";
-import { createManualCharge, createMeterReading, deleteCharge, toggleChargePaid } from "@/lib/actions/meters";
+import { createManualCharge, createMeterReading } from "@/lib/actions/meters";
 import { METER_TYPES, METER_UNITS, type MeterType, isKeyOf, labelOf } from "@/lib/constants";
 import { formatCurrency, formatDate, toDateInputValue, todayUtc } from "@/lib/format";
 
@@ -106,33 +106,7 @@ export default async function TenantPage({ params }: Props) {
                   description="חיובי ארנונה, ועד בית ומונים יופיעו כאן עד שיסומנו כשולמו."
                 />
               ) : (
-                <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white">
-                  {tenant.charges.map((charge) => (
-                    <li key={charge.id} className="flex items-center gap-3 p-3 sm:p-4">
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium text-slate-900">{charge.description}</p>
-                        <p className="text-sm text-slate-500">{formatDate(charge.date)}</p>
-                      </div>
-                      <span className="shrink-0 font-semibold tabular-nums text-slate-900">
-                        {formatCurrency(charge.amount)}
-                      </span>
-                      <div className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center">
-                        <form action={toggleChargePaid}>
-                          <input type="hidden" name="id" value={charge.id} />
-                          <PendingButton variant="secondary" className="min-h-9 px-3 text-sm">
-                            סמן כשולם
-                          </PendingButton>
-                        </form>
-                        <DeleteButton
-                          id={charge.id}
-                          action={deleteCharge}
-                          confirmMessage="למחוק את החיוב?"
-                          variant="ghost"
-                        />
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                <ChargeList charges={tenant.charges} />
               )}
             </section>
           </div>

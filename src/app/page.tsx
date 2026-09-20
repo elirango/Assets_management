@@ -1,39 +1,45 @@
 import Link from "next/link";
+import { ChargeList } from "@/components/charge-list";
 import { ReminderList } from "@/components/reminder-list";
 import { Badge, Card, EmptyState, LinkButton, PageHeader, SectionTitle } from "@/components/ui";
-import { EXPENSE_CATEGORIES, labelOf } from "@/lib/constants";
 import { addDays, daysBetween, formatCurrency, formatDate, todayUtc } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
+const UPCOMING_REMINDERS = 3;
+const CONTRACT_HORIZON_DAYS = 60;
+
 export default async function DashboardPage() {
   const today = todayUtc();
-  const monthStart = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1));
-  const contractHorizon = addDays(today, 60);
+  const contractHorizon = addDays(today, CONTRACT_HORIZON_DAYS);
 
-  const [propertyCount, tenantCount, monthExpenses, openReminders, endingContracts, recentExpenses] =
+  const [propertyCount, tenantCount, upcomingReminders, overdueCount, expiringContracts, openCharges] =
     await Promise.all([
       prisma.property.count(),
       prisma.tenant.count(),
-      prisma.expense.aggregate({ _sum: { amount: true }, where: { date: { gte: monthStart } } }),
+      // Section 1: the next reminders from today on (open ones only).
       prisma.reminder.findMany({
-        where: { done: false },
+        where: { done: false, dueDate: { gte: today } },
         orderBy: { dueDate: "asc" },
-        take: 8,
+        take: UPCOMING_REMINDERS,
         include: { property: { select: { id: true, name: true } }, tenant: { select: { id: true, fullName: true } } },
       }),
+      // Overdue reminders are not in the "next 3" list, so surface their count separately.
+      prisma.reminder.count({ where: { done: false, dueDate: { lt: today } } }),
+      // Section 2: contracts ending within the horizon.
       prisma.tenant.findMany({
         where: { contractEnd: { gte: today, lte: contractHorizon } },
         orderBy: { contractEnd: "asc" },
-        include: { property: { select: { id: true, name: true } } },
+        select: { id: true, fullName: true, contractEnd: true, property: { select: { id: true, name: true } } },
       }),
-      prisma.expense.findMany({
-        orderBy: { date: "desc" },
-        take: 5,
-        include: { property: { select: { id: true, name: true } } },
+      // Section 3: every unpaid charge, oldest debt first.
+      prisma.charge.findMany({
+        where: { isPaid: false },
+        orderBy: { date: "asc" },
+        include: { tenant: { select: { id: true, fullName: true, property: { select: { id: true, name: true } } } } },
       }),
     ]);
 
-  const overdueCount = openReminders.filter((reminder) => reminder.dueDate < today).length;
+  const openDebt = openCharges.reduce((sum, charge) => sum + charge.amount, 0);
 
   return (
     <>
@@ -42,12 +48,17 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="נכסים" value={propertyCount} href="/properties" />
         <StatCard label="דיירים" value={tenantCount} href="/tenants" />
-        <StatCard label="הוצאות החודש" value={formatCurrency(monthExpenses._sum.amount ?? 0)} href="/expenses" />
         <StatCard
-          label="תזכורות פתוחות"
-          value={openReminders.length}
+          label="חובות פתוחים"
+          value={formatCurrency(openDebt)}
+          href="#open-charges"
+          accent={openCharges.length > 0 ? `${openCharges.length} חיובים` : undefined}
+        />
+        <StatCard
+          label="תזכורות באיחור"
+          value={overdueCount}
           href="/reminders"
-          accent={overdueCount > 0 ? `${overdueCount} באיחור` : undefined}
+          accent={overdueCount > 0 ? "לטיפול" : undefined}
         />
       </div>
 
@@ -66,6 +77,7 @@ export default async function DashboardPage() {
         </LinkButton>
       </div>
 
+      {/* Section 1 */}
       <section className="mt-8">
         <SectionTitle
           action={
@@ -76,22 +88,32 @@ export default async function DashboardPage() {
         >
           תזכורות קרובות
         </SectionTitle>
-        {openReminders.length === 0 ? (
+        {overdueCount > 0 && (
+          <p className="mb-3 text-sm text-red-700">
+            <Link href="/reminders" className="hover:underline">
+              {overdueCount === 1 ? "תזכורת אחת באיחור" : `${overdueCount} תזכורות באיחור`} — לצפייה ברשימה המלאה
+            </Link>
+          </p>
+        )}
+        {upcomingReminders.length === 0 ? (
           <EmptyState
-            title="אין תזכורות פתוחות"
+            title="אין תזכורות קרובות"
             description="הוסיפו תזכורת להפקדת צ׳ק, סיום חוזה או קריאת מונה."
             action={<LinkButton href="/reminders/new">הוספת תזכורת</LinkButton>}
           />
         ) : (
-          <ReminderList reminders={openReminders} compact />
+          <ReminderList reminders={upcomingReminders} />
         )}
       </section>
 
-      {endingContracts.length > 0 && (
-        <section className="mt-8">
-          <SectionTitle>חוזים שמסתיימים ב-60 הימים הקרובים</SectionTitle>
+      {/* Section 2 */}
+      <section className="mt-8">
+        <SectionTitle>חוזים לקראת סיום</SectionTitle>
+        {expiringContracts.length === 0 ? (
+          <EmptyState title={`אין חוזים שמסתיימים ב-${CONTRACT_HORIZON_DAYS} הימים הקרובים`} />
+        ) : (
           <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white">
-            {endingContracts.map((tenant) => {
+            {expiringContracts.map((tenant) => {
               const days = daysBetween(today, tenant.contractEnd!);
               return (
                 <li key={tenant.id} className="flex items-center justify-between gap-3 p-3 sm:p-4">
@@ -103,40 +125,28 @@ export default async function DashboardPage() {
                       {tenant.property ? tenant.property.name : "ללא נכס"} · מסתיים {formatDate(tenant.contractEnd)}
                     </p>
                   </div>
-                  <Badge tone={days <= 14 ? "red" : "amber"}>{days === 0 ? "היום" : `בעוד ${days} ימים`}</Badge>
+                  <Badge tone={days <= 14 ? "red" : "amber"}>
+                    {days === 0 ? "היום" : days === 1 ? "מחר" : `בעוד ${days} ימים`}
+                  </Badge>
                 </li>
               );
             })}
           </ul>
-        </section>
-      )}
+        )}
+      </section>
 
-      <section className="mt-8">
-        <SectionTitle
-          action={
-            <Link href="/expenses" className="text-sm text-blue-700 hover:underline">
-              לכל ההוצאות
-            </Link>
-          }
-        >
-          הוצאות אחרונות
+      {/* Section 3 */}
+      <section id="open-charges" className="mt-8 scroll-mt-20">
+        <SectionTitle>
+          חובות פתוחים ({openCharges.length})
+          {openCharges.length > 0 && (
+            <span className="ms-2 text-base font-semibold text-red-700 tabular-nums">{formatCurrency(openDebt)}</span>
+          )}
         </SectionTitle>
-        {recentExpenses.length === 0 ? (
-          <EmptyState title="עדיין לא נרשמו הוצאות" />
+        {openCharges.length === 0 ? (
+          <EmptyState title="אין חובות פתוחים" description="חיובי ארנונה, ועד בית ומונים שטרם שולמו יופיעו כאן." />
         ) : (
-          <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white">
-            {recentExpenses.map((expense) => (
-              <li key={expense.id} className="flex items-center justify-between gap-3 p-3 sm:p-4">
-                <div className="min-w-0">
-                  <p className="truncate font-medium text-slate-900">{expense.title}</p>
-                  <p className="text-sm text-slate-500">
-                    {expense.property.name} · {labelOf(EXPENSE_CATEGORIES, expense.category)} · {formatDate(expense.date)}
-                  </p>
-                </div>
-                <span className="shrink-0 font-semibold tabular-nums text-slate-900">{formatCurrency(expense.amount)}</span>
-              </li>
-            ))}
-          </ul>
+          <ChargeList charges={openCharges} showTenant />
         )}
       </section>
     </>
