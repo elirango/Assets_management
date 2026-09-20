@@ -84,7 +84,7 @@ export default async function TenantPage({ params }: Props) {
             </Card>
           </section>
 
-          <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+          <div className="grid gap-6 xl:grid-cols-2 xl:items-start">
             <section>
               <SectionTitle>הוספת חיוב (ארנונה / ועד בית)</SectionTitle>
               <Card>
