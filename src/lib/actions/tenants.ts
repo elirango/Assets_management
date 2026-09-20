@@ -4,11 +4,16 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import {
+  CONTRACT_REMINDER_TYPES,
+  DEFAULT_CONTRACT_MONTHS,
   DEFAULT_PAYMENT_DAY,
+  MAX_CONTRACT_MONTHS,
   MAX_PAYMENT_DAY,
+  MIN_CONTRACT_MONTHS,
   MIN_PAYMENT_DAY,
-  buildCheckDepositReminders,
+  buildContractReminders,
   contractEndFromStart,
+  isValidContractMonths,
   isValidPaymentDay,
   parseIsoDate,
 } from "@/lib/contract";
@@ -25,11 +30,16 @@ async function parseTenant(formData: FormData) {
   }
 
   const contractStart = getDate(formData, "contractStart");
+  // Contract length is not stored; it only drives the end-date default. Empty → 12 months.
+  const contractMonths = getNumber(formData, "contractMonths") ?? DEFAULT_CONTRACT_MONTHS;
+  if (!isValidContractMonths(contractMonths)) {
+    return failure(`משך החוזה חייב להיות מספר שלם של חודשים בין ${MIN_CONTRACT_MONTHS} ל-${MAX_CONTRACT_MONTHS}`, formData);
+  }
   // The form fills the end date client-side; repeat the rule here so a submit without
-  // JavaScript (or a cleared field) still gets the one-year-minus-one-day default.
+  // JavaScript (or a cleared field) still gets start + duration − 1 day.
   const contractEnd =
     getDate(formData, "contractEnd") ??
-    (contractStart ? parseIsoDate(contractEndFromStart(getString(formData, "contractStart"))) : null);
+    (contractStart ? parseIsoDate(contractEndFromStart(getString(formData, "contractStart"), contractMonths)) : null);
   if (contractStart && contractEnd && contractEnd < contractStart) {
     return failure("תאריך סיום החוזה חייב להיות אחרי תאריך ההתחלה", formData);
   }
@@ -70,10 +80,10 @@ export async function createTenant(_prev: ActionState, formData: FormData): Prom
   const parsed = await parseTenant(formData);
   if ("error" in parsed) return parsed;
 
-  // Tenant + its monthly cheque reminders are written atomically.
+  // Tenant + its contract reminders (monthly cheques and the renewal) are written atomically.
   await prisma.$transaction(async (tx) => {
     const tenant = await tx.tenant.create({ data: parsed.data });
-    const reminders = buildCheckDepositReminders(tenant);
+    const reminders = buildContractReminders(tenant);
     if (reminders.length > 0) await tx.reminder.createMany({ data: reminders });
   });
 
@@ -101,10 +111,12 @@ export async function updateTenant(id: string, _prev: ActionState, formData: For
     const tenant = await tx.tenant.update({ where: { id }, data: parsed.data });
     if (!contractChanged) return;
 
-    // The contract period, payment day or property moved: rebuild the cheque schedule. Reminders already
-    // marked done are kept as history; only the open ones are replaced.
-    await tx.reminder.deleteMany({ where: { tenantId: id, type: "CHECK_DEPOSIT", done: false } });
-    const reminders = buildCheckDepositReminders(tenant);
+    // The contract period, payment day or property moved: rebuild the cheque schedule and the
+    // renewal reminder. Reminders already marked done are kept as history; only open ones are replaced.
+    await tx.reminder.deleteMany({
+      where: { tenantId: id, type: { in: [...CONTRACT_REMINDER_TYPES] }, done: false },
+    });
+    const reminders = buildContractReminders(tenant);
     if (reminders.length > 0) await tx.reminder.createMany({ data: reminders });
   });
 

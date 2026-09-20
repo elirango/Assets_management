@@ -4,15 +4,23 @@ import { useActionState, useState } from "react";
 import { FormActions } from "@/components/forms/form-actions";
 import { Field, FormError, Input, Select, Textarea } from "@/components/ui";
 import {
+  DEFAULT_CONTRACT_MONTHS,
   DEFAULT_PAYMENT_DAY,
+  MAX_CONTRACT_MONTHS,
   MAX_PAYMENT_DAY,
+  MIN_CONTRACT_MONTHS,
   MIN_PAYMENT_DAY,
+  RENEWAL_LEAD_DAYS,
   contractEndFromStart,
+  contractMonthsBetween,
+  isValidContractMonths,
   isValidPaymentDay,
   monthlyDueDates,
   parseIsoDate,
+  renewalReminderDate,
 } from "@/lib/contract";
 import type { ActionState } from "@/lib/form";
+import { formatDate } from "@/lib/format";
 
 export type TenantFormValues = {
   fullName: string;
@@ -23,6 +31,7 @@ export type TenantFormValues = {
   paymentDay: string;
   contractStart: string;
   contractEnd: string;
+  contractMonths: string;
   propertyId: string;
   notes: string;
 };
@@ -46,23 +55,50 @@ export function TenantForm({
   // On a failed submit React resets the form, so re-seed it with what was typed.
   const values = { ...initial, ...state.values };
 
-  // Contract dates are controlled so the end date can follow the start date.
-  // `endIsAuto` is true while the end date is empty or still equals the derived default;
-  // once the user edits it by hand we stop overriding it.
+  // Contract dates are controlled so the end date can follow start + duration.
+  // `endIsAuto` is true while the end date is empty or still equals the derived value;
+  // once the user edits the end date by hand we stop overriding it.
   const [contractStart, setContractStart] = useState(values.contractStart ?? "");
   const [contractEnd, setContractEnd] = useState(values.contractEnd ?? "");
+  // Duration is not stored: on edit it is recovered from the saved dates, or left blank
+  // when the saved end date does not match a whole number of months.
+  const [contractMonthsInput, setContractMonthsInput] = useState(() => {
+    if (values.contractMonths) return values.contractMonths;
+    if (values.contractStart && values.contractEnd) {
+      return contractMonthsBetween(values.contractStart, values.contractEnd)?.toString() ?? "";
+    }
+    return String(DEFAULT_CONTRACT_MONTHS);
+  });
+  const contractMonths = contractMonthsInput === "" ? null : Number(contractMonthsInput);
+  const contractMonthsValid = contractMonths != null && isValidContractMonths(contractMonths);
+
+  function derivedEnd(start: string, months: number | null): string {
+    return months != null && isValidContractMonths(months) ? (contractEndFromStart(start, months) ?? "") : "";
+  }
+
   const [endIsAuto, setEndIsAuto] = useState(
-    !values.contractEnd || values.contractEnd === contractEndFromStart(values.contractStart ?? ""),
+    () => !values.contractEnd || values.contractEnd === derivedEnd(values.contractStart ?? "", contractMonths),
   );
 
   function handleStartChange(next: string) {
     setContractStart(next);
-    if (endIsAuto) setContractEnd(contractEndFromStart(next) ?? "");
+    if (endIsAuto) setContractEnd(derivedEnd(next, contractMonths));
+  }
+
+  function handleMonthsChange(next: string) {
+    setContractMonthsInput(next);
+    const months = next === "" ? null : Number(next);
+    if (months != null && isValidContractMonths(months) && contractStart) {
+      setContractEnd(derivedEnd(contractStart, months));
+      setEndIsAuto(true);
+    }
   }
 
   function handleEndChange(next: string) {
     setContractEnd(next);
-    setEndIsAuto(next === "" || next === contractEndFromStart(contractStart));
+    setEndIsAuto(next === "" || next === derivedEnd(contractStart, contractMonths));
+    // Keep the duration honest: show the matching month count, or blank for a custom end date.
+    if (next && contractStart) setContractMonthsInput(contractMonthsBetween(contractStart, next)?.toString() ?? "");
   }
 
   const startDate = parseIsoDate(contractStart);
@@ -144,7 +180,7 @@ export function TenantForm({
         />
       </Field>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         <Field label="תחילת חוזה">
           <Input
             name="contractStart"
@@ -153,9 +189,28 @@ export function TenantForm({
             onChange={(event) => handleStartChange(event.target.value)}
           />
         </Field>
+        <Field label="משך חוזה (חודשים)" hint={contractMonthsInput === "" ? "תאריך סיום מותאם אישית" : undefined}>
+          <Input
+            name="contractMonths"
+            type="number"
+            inputMode="numeric"
+            min={MIN_CONTRACT_MONTHS}
+            max={MAX_CONTRACT_MONTHS}
+            step="1"
+            value={contractMonthsInput}
+            onChange={(event) => handleMonthsChange(event.target.value)}
+            aria-invalid={(contractMonthsInput !== "" && !contractMonthsValid) || undefined}
+            dir="ltr"
+            className={`text-end ${contractMonthsInput !== "" && !contractMonthsValid ? "border-red-400 focus:border-red-500 focus:ring-red-500/20" : ""}`}
+          />
+        </Field>
         <Field
           label="סיום חוזה"
-          hint={endIsAuto && contractEnd ? "חושב אוטומטית: שנה פחות יום. ניתן לשנות ידנית." : undefined}
+          hint={
+            endIsAuto && contractEnd && contractMonthsValid
+              ? `חושב אוטומטית: תחילת חוזה + ${contractMonths} חודשים פחות יום. ניתן לשנות ידנית.`
+              : undefined
+          }
         >
           <Input
             name="contractEnd"
@@ -174,7 +229,9 @@ export function TenantForm({
             : chequeCount > 0
               ? `בשמירה ייווצרו ${chequeCount} תזכורות להפקדת צ'ק – ב-${paymentDay} לכל חודש לאורך תקופת החוזה.`
               : `לא ייווצרו תזכורות להפקדת צ'ק: ה-${paymentDay} בחודש לא נופל בתוך תקופת החוזה.`}
-          {isEdit && " תזכורות פתוחות קיימות להפקדת צ'ק של דייר זה יוחלפו."}
+          {endDate &&
+            ` בנוסף תיווצר תזכורת חידוש חוזה ל-${formatDate(renewalReminderDate(endDate))} (${RENEWAL_LEAD_DAYS} ימים לפני הסיום).`}
+          {isEdit && " תזכורות פתוחות קיימות (צ'קים וחידוש חוזה) של דייר זה יוחלפו."}
         </p>
       )}
 
