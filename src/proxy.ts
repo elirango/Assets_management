@@ -21,6 +21,7 @@ export const proxy = auth((request) => {
 });
 
 export const config = {
-  // Everything except the auth endpoints, the login page and static assets.
-  matcher: ["/((?!api/auth|login|_next/static|_next/image|favicon\.ico).*)"],
+  // Everything except the auth endpoints, the cron endpoints (guarded by CRON_SECRET),
+  // the login page and static assets.
+  matcher: ["/((?!api/auth|api/cron|login|_next/static|_next/image|favicon\.ico).*)"],
 };

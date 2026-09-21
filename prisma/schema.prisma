@@ -71,14 +71,16 @@ model Expense {
 }
 
 model Reminder {
-  id        String   @id @default(cuid())
-  type      String   @default("OTHER") // CHECK_DEPOSIT | CONTRACT_END | METER_READING | OTHER
-  title     String
-  dueDate   DateTime
-  done      Boolean  @default(false)
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                 String    @id @default(cuid())
+  type               String    @default("OTHER") // CHECK_DEPOSIT | CONTRACT_END | METER_READING | OTHER
+  title              String
+  dueDate            DateTime
+  done               Boolean   @default(false)
+  notes              String?
+  /// When the daily email cron last included this reminder (throttles repeat CONTRACT_END nudges).
+  lastReminderSentAt DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   propertyId String?
   property   Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)

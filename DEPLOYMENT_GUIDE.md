@@ -102,6 +102,25 @@ The app requires Google sign-in. In Vercel → Project → **Settings → Enviro
 
 Or from the CLI: `npx vercel env add AUTH_SECRET production` (repeat per variable), then `npx vercel env pull` locally.
 
+## Step 4c — Daily reminder email (Vercel Cron + Resend)
+
+`vercel.json` schedules `GET /api/cron/reminders` every day at 06:00 UTC (08:00/09:00 Israel time). The route emails `ADMIN_EMAIL` a Hebrew digest of cheques due tomorrow or overdue, plus contract renewals due within 60 days (each renewal is repeated at most once a week via `Reminder.lastReminderSentAt`). Add to Production:
+
+| Variable | Value |
+| --- | --- |
+| `CRON_SECRET` | `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` — Vercel Cron sends it automatically as `Authorization: Bearer <CRON_SECRET>`; the route refuses everything else |
+| `RESEND_API_KEY` | API key from [resend.com/api-keys](https://resend.com/api-keys) |
+| `RESEND_FROM` (optional) | Sender address. Defaults to `onboarding@resend.dev`, which Resend only delivers to the email that owns the Resend account — so sign up to Resend with `ADMIN_EMAIL`, or verify a domain and set e.g. `ניהול נכסים <reminders@your-domain.com>` |
+| `APP_URL` (optional) | Public URL for the "open the app" button; falls back to Vercel's `VERCEL_PROJECT_PRODUCTION_URL` |
+
+Cron jobs only run on production deployments. To trigger a run by hand:
+
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" https://<your-domain>/api/cron/reminders
+```
+
+The JSON response reports `checkDeposits`, `contractRenewals`, whether an email was `sent`, and the Resend `emailId`. Runs are also listed under Vercel → Project → **Settings → Cron Jobs**.
+
 ## Step 5 — Deploy to production
 
 ```bash
