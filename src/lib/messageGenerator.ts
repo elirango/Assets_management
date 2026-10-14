@@ -1,6 +1,7 @@
 // Builds the WhatsApp-ready payment message for a set of charges.
 // Pure and framework-free so the client modal and any server code produce identical text.
 
+import { formatBillingPeriod, splitBillingPeriod } from "@/lib/billingPeriod";
 import { METER_TYPES, METER_UNITS, type MeterType } from "@/lib/constants";
 import { roundMoney } from "@/lib/meters";
 
@@ -124,12 +125,18 @@ export function generatePaymentMessage(charges: MessageCharge[], options: Messag
         lines.push(`Consumption: ${formatNumber(units)} ${UNIT_EN[type]}`);
         lines.push(`Amount: ${formatMessageAmount(charge.amount)}`);
       }
-    } else if (language === "he") {
-      lines.push(`🏠 ${charge.description}`);
-      lines.push(`סכום: ${formatMessageAmount(charge.amount)}`);
     } else {
-      lines.push(`🏠 ${translateManualDescription(charge.description)} (${formatMessageDate(charge.date, "en")})`);
-      lines.push(`Amount: ${formatMessageAmount(charge.amount)}`);
+      // A billing period goes in parentheses right after the charge name, on the same line.
+      const { title, months } = splitBillingPeriod(charge.description);
+      if (language === "he") {
+        lines.push(`🏠 ${months ? `${title} (${formatBillingPeriod(months)})` : charge.description}`);
+        lines.push(`סכום: ${formatMessageAmount(charge.amount)}`);
+      } else {
+        const name = translateManualDescription(months ? title : charge.description);
+        const suffix = months ? formatBillingPeriod(months, "en") : formatMessageDate(charge.date, "en");
+        lines.push(`🏠 ${name} (${suffix})`);
+        lines.push(`Amount: ${formatMessageAmount(charge.amount)}`);
+      }
     }
     lines.push("");
   }
@@ -144,6 +151,8 @@ export function generatePaymentMessage(charges: MessageCharge[], options: Messag
 
 /** Best-effort English for the auto-generated Hebrew descriptions; unknown text passes through. */
 function translateManualDescription(description: string): string {
+  if (description === "ועד בית") return "HOA fee";
+  if (description === "ארנונה") return "Property tax";
   const manual = description.match(/^(ועד בית|ארנונה), (?:(\d+) חודשים|חודש אחד)$/);
   if (manual) {
     const label = manual[1] === "ועד בית" ? "HOA fee" : "Property tax";

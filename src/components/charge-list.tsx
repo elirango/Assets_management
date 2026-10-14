@@ -4,6 +4,7 @@ import Link from "next/link";
 import { DeleteButton, PendingButton } from "@/components/forms/form-actions";
 import { cx } from "@/components/ui";
 import { deleteCharge, toggleChargePaid } from "@/lib/actions/meters";
+import { formatBillingPeriod, splitBillingPeriod } from "@/lib/billingPeriod";
 import { formatCurrency, formatDate } from "@/lib/format";
 
 export type ChargeListItem = {
@@ -41,6 +42,7 @@ export function ChargeList({
     <ul className="@container divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white">
       {charges.map((charge) => {
         const selected = selectedIds?.has(charge.id) ?? false;
+        const { title, months } = splitBillingPeriod(charge.description);
         return (
           // Narrow container: the action buttons wrap onto their own line so the description keeps the
           // full width. Wide container (≥ 32rem): everything sits on one line. No fixed heights — rows
@@ -62,7 +64,10 @@ export function ChargeList({
               />
             )}
             <div className="min-w-0 flex-1 basis-40">
-              <p className="break-words font-medium leading-normal text-slate-900">{charge.description}</p>
+              <p className="break-words font-medium leading-normal text-slate-900">
+                {months ? title : charge.description}
+                {months && <BillingPeriodBadge period={formatBillingPeriod(months)} />}
+              </p>
               <p className="text-sm leading-normal text-slate-500">
                 {formatDate(charge.date)}
                 {showTenant && charge.tenant && (
@@ -100,5 +105,14 @@ export function ChargeList({
         );
       })}
     </ul>
+  );
+}
+
+/** Months a charge covers, shown next to its title. */
+function BillingPeriodBadge({ period }: { period: string }) {
+  return (
+    <span className="ms-2 inline-block rounded-md bg-slate-100 px-2 py-0.5 align-middle text-xs font-medium text-slate-700">
+      {period}
+    </span>
   );
 }

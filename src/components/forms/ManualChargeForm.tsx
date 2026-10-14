@@ -2,7 +2,9 @@
 
 import { useActionState, useState } from "react";
 import { PendingButton } from "@/components/forms/form-actions";
+import { MonthMultiSelect } from "@/components/forms/month-multi-select";
 import { Field, FormError, Input, cx } from "@/components/ui";
+import { type BillingMonth, parseMonthsField } from "@/lib/billingPeriod";
 import { MAX_CHARGE_MONTHS, calculateManualCharge, isValidMonths, manualChargeDescription } from "@/lib/charges";
 import {
   MANUAL_CHARGE_DEFAULT_RATE,
@@ -38,7 +40,10 @@ export function ManualChargeForm({
   const v = state.values ?? {};
 
   const [type, setType] = useState<ManualChargeType>((v.type as ManualChargeType) ?? "HOA");
-  const [months, setMonths] = useState(v.months ?? "1");
+  const [typedMonths, setMonths] = useState(v.months ?? "1");
+  const [selectedMonths, setSelectedMonths] = useState<BillingMonth[]>(
+    () => parseMonthsField(v.billingMonths ?? "") ?? [],
+  );
   const [rate, setRate] = useState(v.rate ?? defaultRateFor(type));
 
   function selectType(next: ManualChargeType) {
@@ -47,12 +52,15 @@ export function ManualChargeForm({
     setType(next);
   }
 
+  // Picking a billing period fixes the month count to the number of months picked.
+  const periodSelected = selectedMonths.length > 0;
+  const months = periodSelected ? String(selectedMonths.length) : typedMonths;
   const monthsNum = toNumber(months);
   const rateNum = toNumber(rate);
   const monthsValid = monthsNum != null && isValidMonths(monthsNum);
   const rateValid = rateNum != null && rateNum > 0;
   const total = monthsValid && rateValid ? calculateManualCharge(monthsNum, rateNum) : null;
-  const description = monthsValid ? manualChargeDescription(type, monthsNum) : null;
+  const description = monthsValid ? manualChargeDescription(type, monthsNum, selectedMonths) : null;
 
   return (
     <form action={formAction} className="space-y-4">
@@ -86,8 +94,16 @@ export function ManualChargeForm({
         </div>
       </fieldset>
 
+      <MonthMultiSelect
+        name="billingMonths"
+        label="תקופת חיוב"
+        value={selectedMonths}
+        onChange={setSelectedMonths}
+        hint="אופציונלי — החודשים יופיעו ליד החיוב ובהודעת התשלום"
+      />
+
       <div className="grid grid-cols-2 gap-4">
-        <Field label="מספר חודשים" required>
+        <Field label="מספר חודשים" required hint={periodSelected ? "לפי תקופת החיוב" : undefined}>
           <Input
             name="months"
             type="number"
@@ -96,11 +112,16 @@ export function ManualChargeForm({
             max={MAX_CHARGE_MONTHS}
             step="1"
             required
+            readOnly={periodSelected}
             value={months}
             onChange={(event) => setMonths(event.target.value)}
             aria-invalid={(months !== "" && !monthsValid) || undefined}
             dir="ltr"
-            className={cx("text-end", months !== "" && !monthsValid && "border-red-400")}
+            className={cx(
+              "text-end",
+              months !== "" && !monthsValid && "border-red-400",
+              periodSelected && "bg-slate-50 text-slate-600",
+            )}
           />
         </Field>
         <Field label="תעריף חודשי (₪)" required hint={type === "HOA" ? "ברירת מחדל: 40 ₪ לחודש" : undefined}>

@@ -8,6 +8,7 @@ import { MANUAL_CHARGE_TYPES, METER_TYPES, isKeyOf } from "@/lib/constants";
 import { type ActionState, failure, getDate, getNumber, getString } from "@/lib/form";
 import { todayUtc } from "@/lib/format";
 import { MAX_CHARGE_MONTHS, calculateManualCharge, isValidMonths, manualChargeDescription } from "@/lib/charges";
+import { parseMonthsField } from "@/lib/billingPeriod";
 import { calculateMeterBill, meterChargeDescription, meterFixedFeeApplies } from "@/lib/meters";
 
 function revalidateTenant(tenantId: string, propertyId?: string | null) {
@@ -62,7 +63,8 @@ export async function createMeterReading(
 
 /**
  * Saves a hand-entered recurring charge (HOA / property tax) for a tenant.
- * Amount and description are derived on the server from type × months × rate so a
+ * Amount and description are derived on the server from type × months × rate (months is the
+ * length of the `billingMonths` period when one is selected) so a
  * tampered form cannot post an arbitrary total; a non-empty `description` field wins
  * over the generated one when the user wants to annotate the charge.
  * Bound to a tenant id from the tenant page: `createManualCharge.bind(null, tenantId)`.
@@ -74,11 +76,14 @@ export async function createManualCharge(
 ): Promise<ActionState> {
   await requireAdmin();
   const type = getString(formData, "type");
-  const months = getNumber(formData, "months");
+  const billingMonths = parseMonthsField(getString(formData, "billingMonths"));
   const rate = getNumber(formData, "rate");
   const date = getDate(formData, "date") ?? todayUtc();
 
   if (!isKeyOf(MANUAL_CHARGE_TYPES, type)) return failure("יש לבחור סוג חיוב", formData);
+  if (billingMonths == null) return failure("תקופת החיוב לא תקינה", formData);
+  // A selected billing period fixes the month count; without one the typed count is used.
+  const months = billingMonths.length > 0 ? billingMonths.length : getNumber(formData, "months");
   if (months == null || !isValidMonths(months)) {
     return failure(`מספר החודשים חייב להיות מספר שלם בין 1 ל-${MAX_CHARGE_MONTHS}`, formData);
   }
@@ -88,7 +93,7 @@ export async function createManualCharge(
   if (!tenant) return failure("הדייר לא נמצא", formData);
 
   const amount = calculateManualCharge(months, rate);
-  const description = getString(formData, "description") || manualChargeDescription(type, months);
+  const description = getString(formData, "description") || manualChargeDescription(type, months, billingMonths);
 
   await prisma.charge.create({ data: { tenantId, amount, description, date, isPaid: false } });
 
