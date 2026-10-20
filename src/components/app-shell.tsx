@@ -14,6 +14,7 @@ const navItems = [
   { href: "/tenants", label: "דיירים", icon: UsersIcon },
   { href: "/expenses", label: "הוצאות", icon: ReceiptIcon },
   { href: "/reminders", label: "תזכורות", icon: BellIcon },
+  { href: "/reports", label: "דוחות", icon: ChartIcon },
 ];
 
 function isActive(pathname: string, href: string) {
@@ -86,7 +87,7 @@ export function AppShell({ children, user }: { children: ReactNode; user: ShellU
         className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden"
         aria-label="ניווט ראשי"
       >
-        <ul className="grid grid-cols-5">
+        <ul className="grid grid-cols-6">
           {navItems.map(({ href, label, icon: Icon }) => {
             const active = isActive(pathname, href);
             return (
@@ -173,6 +174,14 @@ function BellIcon({ className }: IconProps) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
       <path strokeLinecap="round" strokeLinejoin="round" d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15L6 16ZM10 20a2 2 0 0 0 4 0" />
+    </svg>
+  );
+}
+
+function ChartIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v16h16M8 16v-4m4 4V8m4 8v-6" />
     </svg>
   );
 }

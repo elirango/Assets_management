@@ -47,6 +47,7 @@ src/
     tenants/             # list · new · [id] (detail: meter calculator, unpaid charges) · [id]/edit
     expenses/            # list (filter by property) · new · [id]/edit
     reminders/           # list (open / done) · new · [id]/edit
+    reports/             # Tenant charges / property expenses by date range, grouped totals, CSV export
   components/
     app-shell.tsx        # Bottom tab bar (mobile) / sidebar (desktop)
     ui.tsx               # Button, Input, Select, Field, Card, Badge, EmptyState…
@@ -65,6 +66,7 @@ src/
     charges.ts           # Manual HOA / property-tax charges (months × monthly rate)
     messageGenerator.ts  # Bilingual payment message text; pairs meter charges with their readings
     contract.ts          # Contract end default + monthly cheque reminder schedule (UTC-safe)
+    reports.ts           # Report rows, quick date ranges, grouping/totals, CSV builder (pure, client-side)
     actions/             # Server actions: create / update / delete per entity
 ```
 
