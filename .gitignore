@@ -52,3 +52,6 @@ prisma/*.db-journal
 
 # agent skill symlinks (absolute paths, machine-specific; real files live in .agents/skills)
 /.claude/skills/
+
+# Hallmark design runs (lint records, screenshots)
+/.hallmark/
