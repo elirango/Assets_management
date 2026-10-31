@@ -109,7 +109,7 @@ export function MonthMultiSelect({
                     type="checkbox"
                     checked={checked}
                     onChange={() => toggle(month)}
-                    className="size-4 shrink-0 accent-ink"
+                    className="size-4 shrink-0 accent-brand"
                   />
                   {monthName}
                 </label>

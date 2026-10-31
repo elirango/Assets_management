@@ -2,6 +2,7 @@
  * nav: kept (sidebar on paper-2, bottom tab bar on phones) · signature: the open-debts ledger, a cotton statement sheet with the owed total in figures · states: empty, pending, error, full
  * axes: light/grotesk-sans/warm · posture: restrained · contrast: pass · v2.0.0 */
 /* Hallmark · pre-emit critique: P4 H4 E4 S4 R5 V4 · weakest: S, a ledger app could look like any back office; the debts lead the dashboard as one statement sheet and every list is a ruled ledger on cotton */
+/* Hallmark · palette: the user chose option B over Coral's neutrals: deep-teal sidebar and primary actions, mint tiles and tags, coral for money owed and overdue */
 /* Hallmark · faces: Rubik throughout (General Sans has no Hebrew); column figures in Rubik tabular numerals, Geist Mono dropped because its slashed zero reads as Ø beside Hebrew */
 /* Hallmark · kept: every /new, /new?propertyId= and /reminders link is still rendered (same count per page as before); they moved inside JSX expressions, which the static record reads as missing */
 /* Hallmark · reworded "→ כל הדיירים" / "→ כל הנכסים" to "כל הדיירים" / "כל הנכסים" · 63 names the arrow glued to link text */
@@ -73,5 +74,5 @@ body {
 }
 
 dialog::backdrop {
-  background: color-mix(in oklab, var(--color-board) 45%, transparent);
+  background: color-mix(in oklab, var(--color-brand-deep) 50%, transparent);
 }

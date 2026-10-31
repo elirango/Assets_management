@@ -23,7 +23,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#f1ede9",
+  themeColor: "#04342c",
 };
 
 // Every page reads from the local database, so render on each request.

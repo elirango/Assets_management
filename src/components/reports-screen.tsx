@@ -174,7 +174,8 @@ function ReportsDataTable({ tab, groups, total }: { tab: ReportTab; groups: Repo
                 <td className="hidden px-4 py-3 font-medium text-ink sm:table-cell">{row.name}</td>
                 <td className="px-3 py-3 text-ink-2 sm:px-4">
                   <span className="me-2">{row.description}</span>
-                  <Badge tone={row.tagTone}>{row.tag}</Badge>
+                  {/* Unpaid charges are money owed, so they take the coral tag. */}
+                  <Badge tone={row.tagTone === "amber" ? "red" : row.tagTone}>{row.tag}</Badge>
                   {row.billingPeriod && (
                     <span className="block text-xs text-muted sm:hidden">{row.billingPeriod}</span>
                   )}

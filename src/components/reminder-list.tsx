@@ -55,7 +55,7 @@ export function ReminderList({
                 aria-label={reminder.done ? "בוצע" : "טרם בוצע"}
                 className={cx(
                   "mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full",
-                  reminder.done ? "bg-ink text-cotton" : "groove rounded-full! text-transparent",
+                  reminder.done ? "bg-brand text-on-brand" : "groove rounded-full! text-transparent",
                 )}
               >
                 {checkMark}
@@ -68,7 +68,7 @@ export function ReminderList({
                   className={cx(
                     "size-9! min-h-0! rounded-full! p-0!",
                     reminder.done
-                      ? "bg-ink text-cotton hover:bg-ink-2"
+                      ? "bg-brand text-on-brand hover:bg-brand-hover"
                       : "groove text-transparent hover:bg-paper-3 hover:text-muted",
                   )}
                 >

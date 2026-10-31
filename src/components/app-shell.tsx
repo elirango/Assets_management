@@ -21,8 +21,8 @@ function isActive(pathname: string, href: string) {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
 }
 
-// Mobile: top bar + fixed bottom tab bar. Desktop (md+): fixed sidebar on the start side, on the
-// second neutral; the current destination is a cotton card lifted off it.
+// Mobile: deep-teal top bar + fixed bottom tab bar. Desktop (md+): fixed deep-teal sidebar on the start side;
+// the current destination is a brand-teal pill.
 // Without a signed-in user (login page) the children render bare, with no navigation.
 export function AppShell({ children, user }: { children: ReactNode; user: ShellUser | null }) {
   const pathname = usePathname();
@@ -33,9 +33,9 @@ export function AppShell({ children, user }: { children: ReactNode; user: ShellU
 
   return (
     <div className="min-h-dvh">
-      <header className="sticky top-0 z-20 border-b border-rule bg-paper-2/95 backdrop-blur md:hidden">
+      <header className="sticky top-0 z-20 bg-brand-deep text-on-brand md:hidden">
         <div className="flex h-14 items-center justify-between gap-3 px-4">
-          <Link href="/" className="text-lg font-semibold tracking-tight text-ink">
+          <Link href="/" className="text-lg font-semibold tracking-tight text-on-brand focus-visible:outline-mint-2">
             ניהול נכסים
           </Link>
           <div className="flex items-center gap-2">
@@ -45,9 +45,9 @@ export function AppShell({ children, user }: { children: ReactNode; user: ShellU
         </div>
       </header>
 
-      <aside className="fixed inset-y-0 start-0 z-20 hidden w-60 flex-col border-e border-rule bg-paper-2 md:flex">
+      <aside className="fixed inset-y-0 start-0 z-20 hidden w-60 flex-col bg-brand-deep text-on-brand md:flex">
         <div className="flex h-20 items-center px-6">
-          <Link href="/" className="text-xl font-semibold tracking-tight text-ink">
+          <Link href="/" className="text-xl font-semibold tracking-tight text-on-brand focus-visible:outline-mint-2">
             ניהול נכסים
           </Link>
         </div>
@@ -60,22 +60,22 @@ export function AppShell({ children, user }: { children: ReactNode; user: ShellU
                 href={href}
                 aria-current={active ? "page" : undefined}
                 className={cx(
-                  "flex min-h-10 items-center gap-3 rounded-card px-3 text-base font-medium transition-colors duration-(--dur-micro)",
-                  active ? "edge bg-cotton text-ink" : "text-ink-2 hover:bg-paper-3/70 hover:text-ink",
+                  "flex min-h-10 items-center gap-3 rounded-card px-3 text-base font-medium transition-colors duration-(--dur-micro) focus-visible:outline-mint-2",
+                  active ? "bg-brand text-on-brand" : "text-mint-2 hover:bg-brand/45 hover:text-on-brand",
                 )}
               >
-                <Icon className={cx("size-5", active ? "text-ink" : "text-muted")} />
+                <Icon className="size-5" />
                 {label}
               </Link>
             );
           })}
         </nav>
-        <div className="border-t border-rule px-4 py-4">
-          <p className="truncate text-sm font-medium text-ink" title={user.email ?? undefined}>
+        <div className="border-t border-on-brand/15 px-4 py-4">
+          <p className="truncate text-sm font-medium text-on-brand" title={user.email ?? undefined}>
             {user.name ?? user.email}
           </p>
           <div className="mt-1 flex items-center justify-between gap-2">
-            {viewer ? <ViewerBadge /> : <span className="text-xs text-muted">מנהל</span>}
+            {viewer ? <ViewerBadge /> : <span className="text-xs text-mint-2">מנהל</span>}
             <SignOutButton />
           </div>
         </div>
@@ -99,7 +99,7 @@ export function AppShell({ children, user }: { children: ReactNode; user: ShellU
                   className={cx(
                     "relative flex min-h-14 flex-col items-center justify-center gap-0.5 text-xs font-medium transition-colors duration-(--dur-micro)",
                     active
-                      ? "text-ink before:absolute before:inset-x-3 before:top-0 before:h-0.5 before:rounded-b-sm before:bg-ink"
+                      ? "text-brand before:absolute before:inset-x-3 before:top-0 before:h-0.5 before:rounded-b-sm before:bg-brand"
                       : "text-muted hover:text-ink-2",
                   )}
                   aria-current={active ? "page" : undefined}
@@ -118,7 +118,7 @@ export function AppShell({ children, user }: { children: ReactNode; user: ShellU
 
 function ViewerBadge() {
   return (
-    <span className="inline-flex items-center rounded-input border border-ink-2/70 px-2 py-0.5 text-xs font-medium text-ink">
+    <span className="inline-flex items-center rounded-input border border-mint-2/70 px-2 py-0.5 text-xs font-medium text-on-brand">
       צפייה בלבד
     </span>
   );
@@ -130,7 +130,7 @@ function SignOutButton({ compact = false }: { compact?: boolean }) {
       <button
         type="submit"
         className={cx(
-          "rounded-input text-ink-2 transition-colors duration-(--dur-micro) hover:bg-paper-3/70 hover:text-ink active:bg-paper-3",
+          "rounded-input text-mint-2 transition-colors duration-(--dur-micro) hover:bg-brand/45 hover:text-on-brand focus-visible:outline-mint-2 active:bg-brand",
           compact ? "min-h-9 px-2 text-sm" : "min-h-8 px-2 text-xs",
         )}
       >

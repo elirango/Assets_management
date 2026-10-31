@@ -16,31 +16,40 @@
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
   --color-error: oklch(52% 0.19 27);
   --color-success: oklch(50% 0.12 150);
-  --color-paper: oklch(97% 0.006 55);
-  --color-paper-2: oklch(94.5% 0.007 55);
-  --color-paper-3: oklch(91.5% 0.009 55);
-  --color-ink: oklch(21% 0.012 38);
-  --color-ink-2: oklch(29% 0.013 40);
-  --color-muted: oklch(47% 0.013 45);
-  --color-rule: oklch(87% 0.009 55);
-  --color-rule-2: oklch(81% 0.011 55);
-  --color-accent: oklch(74% 0.125 30);
-  --color-accent-ink: oklch(21% 0.012 38);
-  --color-accent-2: oklch(54% 0.165 29);
-  --color-focus: oklch(54% 0.17 30);
-  --color-cotton: oklch(98.8% 0.0045 80);
-  --color-desk: oklch(94.3% 0.008 64);
-  --color-print: oklch(23% 0.012 38);
-  --color-board: oklch(22% 0.011 40);
-  --color-board-type: oklch(96.5% 0.006 70);
-  --color-paid: oklch(55.5% 0.15 33);
+  /* Paper and ink lean toward the brand teal (hue ~170). */
+  --color-paper: oklch(97.6% 0.005 165);
+  --color-paper-2: oklch(94.6% 0.009 165);
+  --color-paper-3: oklch(91.6% 0.012 165);
+  --color-ink: oklch(24% 0.03 178);
+  --color-ink-2: oklch(33% 0.028 176);
+  --color-muted: oklch(48% 0.02 170);
+  --color-rule: oklch(88.5% 0.011 165);
+  --color-rule-2: oklch(82% 0.014 165);
+  --color-accent: oklch(78% 0.1 167);
+  --color-accent-ink: oklch(24% 0.03 178);
+  /* Coral: money owed, overdue dates, destructive actions. */
+  --color-accent-2: oklch(48% 0.13 38);
+  --color-coral-bg: oklch(95.5% 0.02 40);
+  --color-coral-ink: oklch(37% 0.1 38);
+  --color-focus: oklch(48% 0.09 168);
+  --color-cotton: oklch(99.4% 0.003 165);
+  --color-desk: oklch(96.2% 0.007 165);
+  --color-print: oklch(24% 0.03 178);
+  /* Brand teal: sidebar, primary actions, current selection. */
+  --color-brand: oklch(48% 0.09 168);
+  --color-brand-hover: oklch(40% 0.075 170);
+  --color-brand-deep: oklch(29% 0.045 175);
+  --color-on-brand: oklch(95.8% 0.025 168);
+  --color-mint: oklch(95.8% 0.025 168);
+  --color-mint-2: oklch(86% 0.07 168);
+  --color-mint-ink: oklch(38% 0.07 172);
   --font-display: var(--font-rubik), "Segoe UI", Arial, sans-serif;
   --font-body: var(--font-display);
   --radius-card: 8px;
   --radius-input: 6px;
   --radius-pill: 999px;
   --radius-stock: 8px;
-  --shadow-card: 0 1px 2px oklch(20% 0.01 35 / 0.05);
+  --shadow-card: 0 1px 2px oklch(20% 0.02 175 / 0.05);
   --tracking-display: -0.03em;
 }
 :root {
@@ -72,9 +81,9 @@
   --z-modal: 400;
   --z-toast: 500;
   --z-tooltip: 600;
-  --shade: 32% 0.03 50;
-  --lit: 100% 0.005 80;
-  --deep: 7% 0.01 40;
+  --shade: 30% 0.03 172;
+  --lit: 100% 0.004 165;
+  --deep: 8% 0.015 175;
   --rule-hair: 1px;
   --edge-stock: inset 0 1px 0 oklch(var(--lit) / 0.9), inset 0 -1px 0 oklch(var(--shade) / 0.07), 0 0 0 0.5px oklch(var(--shade) / 0.22), 0 1px 0 oklch(var(--shade) / 0.12);
   --cast-stock: 6px 5px 10px -6px oklch(var(--shade) / 0.3);

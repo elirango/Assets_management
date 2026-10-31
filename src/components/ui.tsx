@@ -16,8 +16,8 @@ const buttonBase =
   "press inline-flex min-h-11 items-center justify-center gap-2 rounded-card px-4 text-base font-medium md:min-h-10 disabled:cursor-not-allowed disabled:opacity-55";
 
 const buttonVariants: Record<Variant, string> = {
-  // Ink board, label pressed the other way.
-  primary: "cast bg-board text-board-type hover:bg-ink-2 active:bg-ink",
+  // Brand teal: the one filled action on a screen.
+  primary: "cast bg-brand text-on-brand hover:bg-brand-hover active:bg-brand-deep",
   // Letterpress card on cotton.
   secondary: "edge bg-cotton text-print hover:edge-lift active:bg-paper",
   // Delete is never the page's one action, so it takes the card with coral ink.
@@ -172,14 +172,14 @@ export function EmptyState({ title, description, action }: { title: string; desc
 
 type Tone = "neutral" | "blue" | "green" | "amber" | "red";
 
-// Status is an outline in ink; coral ink only where money is owed or a date has passed.
+// Category tags are mint, "soon" is a teal outline, done is quiet; coral only where money is owed or a date has passed.
 const badgeTones: Record<Tone, string> = {
   neutral: "border-rule-2 text-ink-2",
-  // Category labels (property type, reminder type, meter): a quiet tag, no outline.
-  blue: "border-transparent bg-paper-2 text-ink-2",
+  // Category labels (property type, reminder type, meter): a mint tag, no outline.
+  blue: "border-transparent bg-mint text-mint-ink",
   green: "border-rule text-muted",
-  amber: "border-ink-2/70 text-ink",
-  red: "border-accent-2/70 text-accent-2",
+  amber: "border-brand/70 text-brand-hover",
+  red: "border-transparent bg-coral-bg text-coral-ink",
 };
 
 export function Badge({ tone = "neutral", children }: { tone?: Tone; children: ReactNode }) {

@@ -68,8 +68,8 @@ export default async function DashboardPage() {
         }
       />
 
-      {/* The four figures share one ruled sheet: each cell links to where the figure comes from. */}
-      <div className="stock grid grid-cols-2 gap-px overflow-hidden bg-rule sm:grid-cols-4">
+      {/* Four mint tiles, each linking to where its figure comes from; a tile that needs attention turns coral. */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCell label="נכסים" value={propertyCount} href="/properties" />
         <StatCell label="דיירים" value={tenantCount} href="/tenants" />
         <StatCell
@@ -184,11 +184,14 @@ function StatCell({
   return (
     <Link
       href={href}
-      className="group flex flex-col bg-cotton px-4 py-4 transition-colors duration-(--dur-micro) hover:bg-paper focus-visible:-outline-offset-2 sm:px-5 sm:py-5"
+      className={cx(
+        "press flex flex-col rounded-card px-4 py-4 sm:px-5 sm:py-5",
+        accent ? "bg-coral-bg text-coral-ink hover:bg-coral-bg/80" : "bg-mint text-ink hover:bg-mint/70",
+      )}
     >
-      <span className="text-sm text-muted group-hover:text-ink-2">{label}</span>
-      <span className="fig mt-1 text-2xl font-medium text-ink">{value}</span>
-      {accent && <span className="mt-0.5 text-sm text-accent-2">{accent}</span>}
+      <span className={cx("text-sm", accent ? "text-coral-ink" : "text-mint-ink")}>{label}</span>
+      <span className="fig mt-1 text-2xl font-medium">{value}</span>
+      {accent && <span className="mt-0.5 text-sm">{accent}</span>}
     </Link>
   );
 }

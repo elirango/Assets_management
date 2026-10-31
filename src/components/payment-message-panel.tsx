@@ -114,7 +114,7 @@ export function PaymentMessagePanel({
             type="checkbox"
             checked={allSelected}
             onChange={toggleAll}
-            className="size-5 accent-ink"
+            className="size-5 accent-brand"
           />
           בחר הכל ({charges.length})
         </label>

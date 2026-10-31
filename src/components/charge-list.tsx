@@ -60,7 +60,7 @@ export function ChargeList({
                 checked={selected}
                 onChange={() => onToggle(charge.id)}
                 aria-label={`בחירת החיוב ${charge.description}`}
-                className="size-5 shrink-0 cursor-pointer accent-ink"
+                className="size-5 shrink-0 cursor-pointer accent-brand"
               />
             )}
             <div className="min-w-0 flex-1 basis-40">
