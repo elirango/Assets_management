@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { DeleteButton, PendingButton } from "@/components/forms/form-actions";
-import { cx } from "@/components/ui";
+import { cx, recordLink } from "@/components/ui";
 import { deleteCharge, toggleChargePaid } from "@/lib/actions/meters";
 import { formatBillingPeriod, splitBillingPeriod } from "@/lib/billingPeriod";
 import { formatCurrency, formatDate } from "@/lib/format";
@@ -37,21 +37,21 @@ export function ChargeList({
   const selectable = selectedIds != null && onToggle != null;
 
   return (
-    // The list lives in columns of very different widths (dashboard vs. tenant page split), so rows
-    // respond to the list's own width (container query) rather than the viewport.
-    <ul className="@container divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white">
+    // A ruled ledger on one cotton sheet. The list lives in columns of very different widths
+    // (dashboard vs. tenant page split), so rows respond to the list's own width (container query).
+    <ul className="stock @container divide-y divide-rule overflow-hidden">
       {charges.map((charge) => {
         const selected = selectedIds?.has(charge.id) ?? false;
         const { title, months } = splitBillingPeriod(charge.description);
         return (
           // Narrow container: the action buttons wrap onto their own line so the description keeps the
-          // full width. Wide container (≥ 32rem): everything sits on one line. No fixed heights — rows
+          // full width. Wide container (≥ 32rem): everything sits on one line. No fixed heights; rows
           // grow with their content.
           <li
             key={charge.id}
             className={cx(
-              "flex flex-wrap items-center gap-x-3 gap-y-2 p-3 @lg:flex-nowrap @lg:p-4",
-              selected && "bg-blue-50/60",
+              "flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 transition-colors duration-(--dur-micro) @lg:flex-nowrap @lg:px-5",
+              selected && "bg-paper-2",
             )}
           >
             {selectable && (
@@ -60,28 +60,25 @@ export function ChargeList({
                 checked={selected}
                 onChange={() => onToggle(charge.id)}
                 aria-label={`בחירת החיוב ${charge.description}`}
-                className="size-5 shrink-0 cursor-pointer rounded border-slate-300 accent-blue-600"
+                className="size-5 shrink-0 cursor-pointer accent-ink"
               />
             )}
             <div className="min-w-0 flex-1 basis-40">
-              <p className="break-words font-medium leading-normal text-slate-900">
+              <p className="break-words font-medium leading-normal text-ink">
                 {months ? title : charge.description}
                 {months && <BillingPeriodBadge period={formatBillingPeriod(months)} />}
               </p>
-              <p className="text-sm leading-normal text-slate-500">
-                {formatDate(charge.date)}
+              <p className="flex flex-wrap gap-x-3 text-sm leading-normal text-muted">
+                <span>{formatDate(charge.date)}</span>
                 {showTenant && charge.tenant && (
-                  <>
-                    {" · "}
-                    <Link href={`/tenants/${charge.tenant.id}`} className="hover:underline">
-                      {charge.tenant.fullName}
-                    </Link>
-                    {charge.tenant.property && ` · ${charge.tenant.property.name}`}
-                  </>
+                  <Link href={`/tenants/${charge.tenant.id}`} className={recordLink}>
+                    {charge.tenant.fullName}
+                  </Link>
                 )}
+                {showTenant && charge.tenant?.property && <span>{charge.tenant.property.name}</span>}
               </p>
             </div>
-            <span className="shrink-0 font-semibold leading-normal tabular-nums text-slate-900">
+            <span className="fig shrink-0 text-base font-medium leading-normal text-ink">
               {formatCurrency(charge.amount)}
             </span>
             {!readOnly && (
@@ -89,12 +86,12 @@ export function ChargeList({
                 className={cx(
                   "flex w-full items-center gap-2 @lg:w-auto @lg:shrink-0",
                   // Align the buttons under the text, past the checkbox column, when wrapped.
-                  selectable && "ps-8 @lg:ps-0",
+                  selectable && "ps-9 @lg:ps-0",
                 )}
               >
                 <form action={toggleChargePaid}>
                   <input type="hidden" name="id" value={charge.id} />
-                  <PendingButton variant="secondary" className="min-h-9 px-3 text-sm">
+                  <PendingButton variant="secondary" className="min-h-9! px-3 text-sm">
                     סמן כשולם
                   </PendingButton>
                 </form>
@@ -111,7 +108,7 @@ export function ChargeList({
 /** Months a charge covers, shown next to its title. */
 function BillingPeriodBadge({ period }: { period: string }) {
   return (
-    <span className="ms-2 inline-block rounded-md bg-slate-100 px-2 py-0.5 align-middle text-xs font-medium text-slate-700">
+    <span className="ms-2 inline-block rounded-input bg-paper-2 px-2 py-0.5 align-middle text-xs font-medium text-ink-2">
       {period}
     </span>
   );

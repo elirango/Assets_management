@@ -129,7 +129,7 @@ export function TenantForm({
 
       <Field label="נכס" hint="ניתן להשאיר ריק ולשייך מאוחר יותר">
         <Select name="propertyId" defaultValue={values?.propertyId ?? ""}>
-          <option value="">— ללא נכס —</option>
+          <option value="">ללא נכס</option>
           {properties.map((property) => (
             <option key={property.id} value={property.id}>
               {property.name}
@@ -162,7 +162,7 @@ export function TenantForm({
         hint={
           paymentDay > 28
             ? "בחודשים קצרים יותר התזכורת תיקבע ליום האחרון בחודש (למשל 28 בפברואר)."
-            : `היום בחודש שבו מופקד צ'ק השכירות (${MIN_PAYMENT_DAY}–${MAX_PAYMENT_DAY}).`
+            : `היום בחודש שבו מופקד צ'ק השכירות (${MIN_PAYMENT_DAY} עד ${MAX_PAYMENT_DAY}).`
         }
       >
         <Input
@@ -177,7 +177,7 @@ export function TenantForm({
           onChange={(event) => setPaymentDayInput(event.target.value)}
           aria-invalid={!paymentDayValid || undefined}
           dir="ltr"
-          className={`text-end sm:max-w-40 ${paymentDayValid ? "" : "border-red-400 focus:border-red-500 focus:ring-red-500/20"}`}
+          className="text-end sm:max-w-40"
         />
       </Field>
 
@@ -202,7 +202,7 @@ export function TenantForm({
             onChange={(event) => handleMonthsChange(event.target.value)}
             aria-invalid={(contractMonthsInput !== "" && !contractMonthsValid) || undefined}
             dir="ltr"
-            className={`text-end ${contractMonthsInput !== "" && !contractMonthsValid ? "border-red-400 focus:border-red-500 focus:ring-red-500/20" : ""}`}
+            className="text-end"
           />
         </Field>
         <Field
@@ -224,11 +224,11 @@ export function TenantForm({
       </div>
 
       {startDate && (!isEdit || contractChanged) && (
-        <p role="status" className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-900">
+        <p role="status" className="rounded-input border border-rule bg-paper px-4 py-3 text-sm leading-relaxed text-ink-2">
           {!paymentDayValid
             ? `יום התשלום חייב להיות בין ${MIN_PAYMENT_DAY} ל-${MAX_PAYMENT_DAY}.`
             : chequeCount > 0
-              ? `בשמירה ייווצרו ${chequeCount} תזכורות להפקדת צ'ק – ב-${paymentDay} לכל חודש לאורך תקופת החוזה.`
+              ? `בשמירה ייווצרו ${chequeCount} תזכורות להפקדת צ'ק, ב-${paymentDay} לכל חודש לאורך תקופת החוזה.`
               : `לא ייווצרו תזכורות להפקדת צ'ק: ה-${paymentDay} בחודש לא נופל בתוך תקופת החוזה.`}
           {endDate &&
             ` בנוסף תיווצר תזכורת חידוש חוזה ל-${formatDate(renewalReminderDate(endDate))} (${RENEWAL_LEAD_DAYS} ימים לפני הסיום).`}
@@ -241,7 +241,7 @@ export function TenantForm({
           name="contractUrl"
           type="url"
           inputMode="url"
-          placeholder="https://drive.google.com/..."
+          placeholder="https://drive.google.com/…"
           maxLength={2000}
           defaultValue={values?.contractUrl}
           dir="ltr"

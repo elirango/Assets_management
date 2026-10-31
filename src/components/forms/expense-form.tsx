@@ -43,7 +43,7 @@ export function ExpenseForm({
       <Field label="נכס" required>
         <Select name="propertyId" required defaultValue={values?.propertyId ?? ""}>
           <option value="" disabled>
-            בחר נכס...
+            בחר נכס…
           </option>
           {properties.map((property) => (
             <option key={property.id} value={property.id}>

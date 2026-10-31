@@ -65,7 +65,7 @@ export function ReminderForm({
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="נכס">
           <Select name="propertyId" defaultValue={values?.propertyId ?? ""}>
-            <option value="">— ללא נכס —</option>
+            <option value="">ללא נכס</option>
             {properties.map((property) => (
               <option key={property.id} value={property.id}>
                 {property.name}
@@ -75,7 +75,7 @@ export function ReminderForm({
         </Field>
         <Field label="דייר">
           <Select name="tenantId" defaultValue={values?.tenantId ?? ""}>
-            <option value="">— ללא דייר —</option>
+            <option value="">ללא דייר</option>
             {tenants.map((tenant) => (
               <option key={tenant.id} value={tenant.id}>
                 {tenant.fullName}

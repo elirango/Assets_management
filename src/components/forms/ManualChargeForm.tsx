@@ -67,16 +67,16 @@ export function ManualChargeForm({
       <FormError message={state.error} />
 
       <fieldset>
-        <legend className="mb-1.5 block text-sm font-medium text-slate-700">סוג חיוב</legend>
-        <div className="grid grid-cols-2 gap-1 rounded-lg bg-slate-100 p-1" role="radiogroup">
+        <legend className="mb-1.5 block text-sm font-medium text-ink-2">סוג חיוב</legend>
+        <div className="groove grid grid-cols-2 gap-1 p-1" role="radiogroup">
           {chargeTypeOptions.map((option) => {
             const active = option.value === type;
             return (
               <label
                 key={option.value}
                 className={cx(
-                  "flex min-h-10 cursor-pointer items-center justify-center rounded-md text-sm font-medium transition-colors",
-                  active ? "bg-white text-blue-700 shadow-sm" : "text-slate-600 hover:text-slate-900",
+                  "flex min-h-9 cursor-pointer items-center justify-center rounded-input text-sm font-medium transition-colors duration-(--dur-micro) has-focus-visible:outline-2 has-focus-visible:outline-focus",
+                  active ? "edge bg-cotton text-ink" : "text-ink-2 hover:bg-paper-3/70 hover:text-ink",
                 )}
               >
                 <input
@@ -99,7 +99,7 @@ export function ManualChargeForm({
         label="תקופת חיוב"
         value={selectedMonths}
         onChange={setSelectedMonths}
-        hint="אופציונלי — החודשים יופיעו ליד החיוב ובהודעת התשלום"
+        hint="אופציונלי. החודשים יופיעו ליד החיוב ובהודעת התשלום"
       />
 
       <div className="grid grid-cols-2 gap-4">
@@ -117,11 +117,7 @@ export function ManualChargeForm({
             onChange={(event) => setMonths(event.target.value)}
             aria-invalid={(months !== "" && !monthsValid) || undefined}
             dir="ltr"
-            className={cx(
-              "text-end",
-              months !== "" && !monthsValid && "border-red-400",
-              periodSelected && "bg-slate-50 text-slate-600",
-            )}
+            className="text-end"
           />
         </Field>
         <Field label="תעריף חודשי (₪)" required hint={type === "HOA" ? "ברירת מחדל: 40 ₪ לחודש" : undefined}>
@@ -151,8 +147,8 @@ export function ManualChargeForm({
         role="status"
         aria-live="polite"
         className={cx(
-          "rounded-lg border px-4 py-3 text-sm",
-          total != null ? "border-blue-100 bg-blue-50 text-blue-900" : "border-slate-200 bg-slate-50 text-slate-500",
+          "rounded-input border px-4 py-3 text-sm",
+          total != null ? "border-rule bg-paper text-ink" : "border-dashed border-rule-2 text-muted",
         )}
       >
         {total != null && description ? (
@@ -163,13 +159,13 @@ export function ManualChargeForm({
             </div>
             <div className="flex justify-between gap-3">
               <dt>חישוב</dt>
-              <dd className="tabular-nums" dir="ltr">
+              <dd className="fig" dir="ltr">
                 {monthsNum} × {formatCurrency(rateNum!)}
               </dd>
             </div>
-            <div className="flex justify-between gap-3 border-t border-blue-200 pt-1 text-base font-semibold">
+            <div className="flex justify-between gap-3 border-t-2 border-ink/80 pt-2 text-base font-medium">
               <dt>סה״כ לחיוב</dt>
-              <dd className="tabular-nums">{formatCurrency(total)}</dd>
+              <dd className="fig">{formatCurrency(total)}</dd>
             </div>
           </dl>
         ) : (

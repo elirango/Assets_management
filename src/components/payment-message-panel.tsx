@@ -109,12 +109,12 @@ export function PaymentMessagePanel({
   return (
     <div className="space-y-3">
       {charges.length > 1 && (
-        <label className="flex min-h-9 cursor-pointer items-center gap-2 text-sm text-slate-700">
+        <label className="flex min-h-9 w-fit cursor-pointer items-center gap-2 text-sm text-ink-2">
           <input
             type="checkbox"
             checked={allSelected}
             onChange={toggleAll}
-            className="size-5 rounded border-slate-300 accent-blue-600"
+            className="size-5 accent-ink"
           />
           בחר הכל ({charges.length})
         </label>
@@ -123,10 +123,10 @@ export function PaymentMessagePanel({
       <ChargeList charges={charges} selectedIds={selectedIds} onToggle={toggle} readOnly={readOnly} />
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-slate-600" aria-live="polite">
+        <p className="text-sm text-muted" aria-live="polite">
           {selected.length === 0
             ? "בחרו חיובים כדי ליצור הודעת תשלום."
-            : `נבחרו ${selected.length} חיובים · ${formatCurrency(selectedTotal)}`}
+            : `נבחרו ${selected.length} חיובים, סה״כ ${formatCurrency(selectedTotal)}`}
         </p>
         <Button type="button" onClick={openPreview} disabled={selected.length === 0} className="w-full sm:w-auto">
           צור הודעת תשלום
@@ -141,21 +141,22 @@ export function PaymentMessagePanel({
           // Clicks on the backdrop (outside the panel) close the dialog.
           if (event.target === dialogRef.current) dialogRef.current?.close();
         }}
-        className="m-auto w-[calc(100%-2rem)] max-w-lg rounded-2xl border border-slate-200 bg-white p-0 text-slate-900 shadow-xl backdrop:bg-slate-900/50 open:flex open:flex-col"
+        className="stock m-auto w-[calc(100%-2rem)] max-w-lg p-0 open:flex open:flex-col"
       >
-        <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
-          <h2 id="payment-message-title" className="text-lg font-semibold">
+        <div className="flex items-center justify-between gap-3 border-b border-rule px-5 py-4">
+          <h2 id="payment-message-title" className="text-section text-ink">
             הודעת תשלום
           </h2>
-          <div className="flex rounded-lg bg-slate-100 p-0.5 text-sm" role="group" aria-label="שפת ההודעה">
+          <div className="groove flex gap-1 p-1 text-sm" role="group" aria-label="שפת ההודעה">
             {(["he", "en"] as const).map((option) => (
               <button
                 key={option}
                 type="button"
                 onClick={() => switchLanguage(option)}
+                aria-pressed={language === option}
                 className={cx(
-                  "min-h-8 rounded-md px-3 font-medium transition-colors",
-                  language === option ? "bg-white text-blue-700 shadow-sm" : "text-slate-600 hover:text-slate-900",
+                  "min-h-8 rounded-input px-3 font-medium transition-colors duration-(--dur-micro)",
+                  language === option ? "edge bg-cotton text-ink" : "text-ink-2 hover:bg-paper-3/70 hover:text-ink",
                 )}
               >
                 {option === "he" ? "עברית" : "English"}
@@ -164,8 +165,8 @@ export function PaymentMessagePanel({
           </div>
         </div>
 
-        <div className="px-4 py-3">
-          <label className="mb-1.5 block text-sm text-slate-600" htmlFor="payment-message-text">
+        <div className="px-5 py-4">
+          <label className="mb-1.5 block text-sm font-medium text-ink-2" htmlFor="payment-message-text">
             ניתן לערוך את הטקסט לפני ההעתקה
           </label>
           <textarea
@@ -178,14 +179,14 @@ export function PaymentMessagePanel({
             }}
             dir={language === "he" ? "rtl" : "ltr"}
             rows={14}
-            className="w-full resize-y rounded-lg border border-slate-300 bg-slate-50 p-3 font-sans text-base leading-relaxed text-slate-900 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
+            className="w-full resize-y rounded-input border border-muted/60 bg-paper p-3 font-sans text-base leading-relaxed text-ink hover:border-muted focus-visible:border-focus focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus/40"
           />
           {copied === "failed" && (
-            <p className="mt-1 text-sm text-red-700">לא ניתן להעתיק אוטומטית — הטקסט סומן, לחצו Ctrl+C.</p>
+            <p className="mt-1.5 text-sm text-accent-2">לא ניתן להעתיק אוטומטית. הטקסט סומן, לחצו Ctrl+C.</p>
           )}
         </div>
 
-        <div className="flex flex-col-reverse gap-2 border-t border-slate-200 px-4 py-3 sm:flex-row sm:justify-end">
+        <div className="flex flex-col-reverse gap-2 border-t border-rule px-5 py-4 sm:flex-row sm:justify-end">
           <Button type="button" variant="secondary" onClick={() => dialogRef.current?.close()}>
             סגירה
           </Button>
@@ -194,12 +195,12 @@ export function PaymentMessagePanel({
               href={waLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 text-base font-medium text-white hover:bg-emerald-700"
+              className="press edge inline-flex min-h-11 items-center justify-center gap-2 rounded-card bg-cotton px-4 text-base font-medium text-print hover:edge-lift md:min-h-10"
             >
               פתיחה בוואטסאפ
             </a>
           )}
-          <Button type="button" onClick={copyMessage} className={cx(copied === "done" && "bg-emerald-600 hover:bg-emerald-600")}>
+          <Button type="button" onClick={copyMessage} className="min-w-32">
             {copied === "done" ? "הועתק!" : "העתק הודעה"}
           </Button>
         </div>

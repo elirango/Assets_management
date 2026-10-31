@@ -7,9 +7,9 @@ import { Button, LinkButton } from "@/components/ui";
 export function FormActions({ submitLabel, cancelHref }: { submitLabel: string; cancelHref: string }) {
   const { pending } = useFormStatus();
   return (
-    <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row">
+    <div className="flex flex-col-reverse gap-3 border-t border-rule pt-5 sm:flex-row">
       <Button type="submit" disabled={pending} className="sm:min-w-32">
-        {pending ? "שומר..." : submitLabel}
+        {pending ? "שומר…" : submitLabel}
       </Button>
       <LinkButton href={cancelHref} variant="secondary">
         ביטול
@@ -42,7 +42,7 @@ export function DeleteButton({
       <input type="hidden" name="id" value={id} />
       <PendingButton
         variant={variant}
-        className={variant === "ghost" ? "min-h-9 px-2 text-sm text-red-700 hover:bg-red-50" : undefined}
+        className={variant === "ghost" ? "min-h-9! px-2 text-sm text-accent-2 hover:bg-paper-2" : undefined}
       >
         {label}
       </PendingButton>

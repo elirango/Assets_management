@@ -41,12 +41,12 @@ export function ReportsScreen({ rows, today }: { rows: Record<ReportTab, ReportR
 
   return (
     <>
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">דוחות</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            {filteredData.length} רשומות · סה״כ {formatCurrency(total)}
-            {unpaidTotal > 0 && ` · לא שולם ${formatCurrency(unpaidTotal)}`}
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-4 md:mb-8">
+        <div className="min-w-0">
+          <h1 className="text-ink">דוחות</h1>
+          <p className="mt-2 text-base text-muted">
+            {filteredData.length} רשומות, סה״כ {formatCurrency(total)}
+            {unpaidTotal > 0 && <span className="text-accent-2">, לא שולם {formatCurrency(unpaidTotal)}</span>}
           </p>
         </div>
         <Button type="button" onClick={exportCsv} disabled={filteredData.length === 0} className="shrink-0">
@@ -75,7 +75,7 @@ export function ReportsScreen({ rows, today }: { rows: Record<ReportTab, ReportR
 
 function ReportTypeTabs({ active, onChange }: { active: ReportTab; onChange: (tab: ReportTab) => void }) {
   return (
-    <div role="tablist" aria-label="סוג דוח" className="mb-4 inline-flex rounded-lg bg-slate-100 p-1">
+    <div role="tablist" aria-label="סוג דוח" className="groove mb-5 inline-flex gap-1 p-1">
       {(Object.keys(REPORT_TABS) as ReportTab[]).map((tab) => (
         <button
           key={tab}
@@ -84,8 +84,8 @@ function ReportTypeTabs({ active, onChange }: { active: ReportTab; onChange: (ta
           aria-selected={tab === active}
           onClick={() => onChange(tab)}
           className={cx(
-            "min-h-10 rounded-md px-5 text-sm font-medium transition-colors",
-            tab === active ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900",
+            "min-h-9 rounded-input px-5 text-sm font-medium transition-colors duration-(--dur-micro)",
+            tab === active ? "edge bg-cotton text-ink" : "text-ink-2 hover:bg-paper-3/70 hover:text-ink",
           )}
         >
           {REPORT_TABS[tab].label}
@@ -107,25 +107,24 @@ function FilterControls({
   const activeFilter = activeQuickFilter(range, today);
 
   return (
-    <div className="mb-4 space-y-3 rounded-xl border border-slate-200 bg-white p-3 sm:p-4">
-      <div className="flex gap-2 overflow-x-auto pb-1">
+    <div className="mb-6 flex flex-wrap items-end gap-x-6 gap-y-4">
+      <div className="flex max-w-full gap-1 overflow-x-auto" role="group" aria-label="טווח מהיר">
         {QUICK_FILTERS.map(({ key, label }) => (
           <button
             key={key}
             type="button"
             onClick={() => onChange(quickFilterRange(key, today))}
             aria-pressed={key === activeFilter}
-            className={
-              key === activeFilter
-                ? "shrink-0 rounded-full bg-slate-900 px-3 py-1.5 text-sm font-medium text-white"
-                : "shrink-0 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
-            }
+            className={cx(
+              "inline-flex min-h-9 shrink-0 items-center whitespace-nowrap rounded-input px-3 text-sm font-medium transition-colors duration-(--dur-micro)",
+              key === activeFilter ? "edge bg-cotton text-ink" : "text-ink-2 hover:bg-paper-2 hover:text-ink active:bg-paper-3",
+            )}
           >
             {label}
           </button>
         ))}
       </div>
-      <div className="grid grid-cols-2 gap-3 sm:max-w-md">
+      <div className="grid w-full grid-cols-2 gap-3 sm:w-auto sm:min-w-96">
         <Field label="מתאריך">
           <Input
             type="date"
@@ -153,59 +152,59 @@ function ReportsDataTable({ tab, groups, total }: { tab: ReportTab; groups: Repo
   const { nameHeader } = REPORT_TABS[tab];
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+    <div className="stock overflow-x-auto">
       <table className="w-full text-sm sm:min-w-[42rem]">
-        <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold text-slate-600">
+        <thead className="border-b border-rule text-sm font-medium text-muted">
           <tr>
-            <th scope="col" className="px-3 py-3 text-start sm:px-4">תאריך</th>
-            <th scope="col" className="hidden px-4 py-3 text-start sm:table-cell">{nameHeader}</th>
-            <th scope="col" className="px-3 py-3 text-start sm:px-4">תיאור</th>
-            <th scope="col" className="hidden px-4 py-3 text-start sm:table-cell">תקופת חיוב</th>
-            <th scope="col" className="px-3 py-3 text-end sm:px-4">סכום</th>
+            <th scope="col" className="px-3 py-3 text-start font-medium sm:ps-5 sm:pe-4">תאריך</th>
+            <th scope="col" className="hidden px-4 py-3 text-start font-medium sm:table-cell">{nameHeader}</th>
+            <th scope="col" className="px-3 py-3 text-start font-medium sm:px-4">תיאור</th>
+            <th scope="col" className="hidden px-4 py-3 text-start font-medium sm:table-cell">תקופת חיוב</th>
+            <th scope="col" className="px-3 py-3 text-end font-medium sm:ps-4 sm:pe-5">סכום</th>
           </tr>
         </thead>
         {groups.map((group) => (
-          <tbody key={group.name} className="border-b border-slate-200">
+          <tbody key={group.name} className="border-b border-rule-2">
             {group.rows.map((row) => (
-              <tr key={row.id} className="border-b border-slate-100 align-top last:border-0 sm:align-middle">
-                <td className="whitespace-nowrap px-3 py-2.5 tabular-nums text-slate-600 sm:px-4">
+              <tr key={row.id} className="border-b border-rule align-top last:border-0 sm:align-middle">
+                <td className="fig whitespace-nowrap px-3 py-3 text-muted sm:ps-5 sm:pe-4">
                   {formatDate(new Date(row.date))}
-                  <span className="block font-medium text-slate-900 sm:hidden">{row.name}</span>
+                  <span className="block font-medium text-ink sm:hidden">{row.name}</span>
                 </td>
-                <td className="hidden px-4 py-2.5 font-medium text-slate-900 sm:table-cell">{row.name}</td>
-                <td className="px-3 py-2.5 text-slate-800 sm:px-4">
+                <td className="hidden px-4 py-3 font-medium text-ink sm:table-cell">{row.name}</td>
+                <td className="px-3 py-3 text-ink-2 sm:px-4">
                   <span className="me-2">{row.description}</span>
                   <Badge tone={row.tagTone}>{row.tag}</Badge>
                   {row.billingPeriod && (
-                    <span className="block text-xs text-slate-500 sm:hidden">{row.billingPeriod}</span>
+                    <span className="block text-xs text-muted sm:hidden">{row.billingPeriod}</span>
                   )}
                 </td>
-                <td className="hidden px-4 py-2.5 text-slate-600 sm:table-cell">{row.billingPeriod || "—"}</td>
-                <td className="whitespace-nowrap px-3 py-2.5 text-end font-medium tabular-nums text-slate-900 sm:px-4">
+                <td className="hidden px-4 py-3 text-muted sm:table-cell">{row.billingPeriod || "—"}</td>
+                <td className="fig whitespace-nowrap px-3 py-3 text-end font-medium text-ink sm:ps-4 sm:pe-5">
                   {formatCurrency(row.amount)}
                 </td>
               </tr>
             ))}
             {groups.length > 1 && (
-              <tr className="bg-slate-50/70 text-slate-600">
-                <td colSpan={2} className="px-3 py-2 text-xs font-medium sm:px-4">
-                  סה״כ {group.name} · {group.rows.length} רשומות
+              <tr className="bg-paper text-ink-2">
+                <td colSpan={2} className="px-3 py-2.5 text-sm font-medium sm:ps-5 sm:pe-4">
+                  סה״כ {group.name}, {group.rows.length} רשומות
                 </td>
                 <SpacerCells />
-                <td className="whitespace-nowrap px-3 py-2 text-end font-semibold tabular-nums text-slate-800 sm:px-4">
+                <td className="fig whitespace-nowrap px-3 py-2.5 text-end font-medium text-ink sm:ps-4 sm:pe-5">
                   {formatCurrency(group.total)}
                 </td>
               </tr>
             )}
           </tbody>
         ))}
-        <tfoot className="bg-slate-100 text-slate-900">
+        <tfoot className="border-t-2 border-ink/80 text-ink">
           <tr>
-            <th scope="row" colSpan={2} className="px-3 py-3 text-start font-bold sm:px-4">
+            <th scope="row" colSpan={2} className="px-3 py-3.5 text-start text-base font-medium sm:ps-5 sm:pe-4">
               סה״כ
             </th>
             <SpacerCells />
-            <td className="whitespace-nowrap px-3 py-3 text-end text-base font-bold tabular-nums sm:px-4">
+            <td className="fig whitespace-nowrap px-3 py-3.5 text-end text-lg font-medium sm:ps-4 sm:pe-5">
               {formatCurrency(total)}
             </td>
           </tr>

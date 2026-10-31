@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { DeleteButton, PendingButton } from "@/components/forms/form-actions";
-import { Badge, cx } from "@/components/ui";
+import { Badge, cx, recordLink, rowAction } from "@/components/ui";
 import { deleteReminder, toggleReminderDone } from "@/lib/actions/reminders";
 import { REMINDER_TYPES, labelOf } from "@/lib/constants";
 import { daysBetween, formatDate, todayUtc } from "@/lib/format";
@@ -25,6 +25,12 @@ function dueStatus(dueDate: Date, done: boolean): { label: string; tone: "neutra
   return { label: `בעוד ${days} ימים`, tone: "neutral" };
 }
 
+const checkMark = (
+  <svg viewBox="0 0 20 20" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
+    <path strokeLinecap="round" strokeLinejoin="round" d="m5 10.5 3.5 3.5L15 7" />
+  </svg>
+);
+
 /** `readOnly` (viewer role) renders the done state as a static mark and hides edit/delete. */
 export function ReminderList({
   reminders,
@@ -36,22 +42,23 @@ export function ReminderList({
   readOnly?: boolean;
 }) {
   return (
-    <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white">
+    <ul className="stock divide-y divide-rule overflow-hidden">
       {reminders.map((reminder) => {
         const status = dueStatus(reminder.dueDate, reminder.done);
         return (
-          <li key={reminder.id} className={cx("flex items-start gap-3 p-3 sm:p-4", reminder.done && "bg-slate-50")}>
+          <li
+            key={reminder.id}
+            className={cx("flex items-start gap-3 px-4 py-3 sm:gap-4 sm:px-5 sm:py-4", reminder.done && "bg-paper/70")}
+          >
             {readOnly ? (
               <span
                 aria-label={reminder.done ? "בוצע" : "טרם בוצע"}
                 className={cx(
-                  "mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full border-2",
-                  reminder.done ? "border-emerald-600 bg-emerald-600 text-white" : "border-slate-200 text-transparent",
+                  "mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full",
+                  reminder.done ? "bg-ink text-cotton" : "groove rounded-full! text-transparent",
                 )}
               >
-                <svg viewBox="0 0 20 20" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m5 10.5 3.5 3.5L15 7" />
-                </svg>
+                {checkMark}
               </span>
             ) : (
               <form action={toggleReminderDone} className="pt-0.5">
@@ -59,54 +66,51 @@ export function ReminderList({
                 <PendingButton
                   variant="ghost"
                   className={cx(
-                    "size-9! min-h-0 rounded-full border-2 p-0!",
-                    reminder.done ? "border-emerald-600 bg-emerald-600 text-white" : "border-slate-300 text-transparent hover:border-emerald-500",
+                    "size-9! min-h-0! rounded-full! p-0!",
+                    reminder.done
+                      ? "bg-ink text-cotton hover:bg-ink-2"
+                      : "groove text-transparent hover:bg-paper-3 hover:text-muted",
                   )}
                 >
                   <span className="sr-only">{reminder.done ? "סמן כלא בוצע" : "סמן כבוצע"}</span>
-                  <svg viewBox="0 0 20 20" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="m5 10.5 3.5 3.5L15 7" />
-                  </svg>
+                  {checkMark}
                 </PendingButton>
               </form>
             )}
 
             <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge tone="blue">{labelOf(REMINDER_TYPES, reminder.type)}</Badge>
-                <Badge tone={status.tone}>{status.label}</Badge>
-              </div>
-              <p className={cx("mt-1.5 font-medium text-slate-900", reminder.done && "text-slate-500 line-through")}>
+              <p className={cx("font-medium text-ink", reminder.done && "text-muted line-through")}>
                 {reminder.title}
               </p>
-              <p className="mt-0.5 text-sm text-slate-500">
-                {formatDate(reminder.dueDate)}
+              <p className="mt-0.5 flex flex-wrap gap-x-3 text-sm text-muted">
+                <span className="fig">{formatDate(reminder.dueDate)}</span>
                 {reminder.property && (
-                  <>
-                    {" · "}
-                    <Link href={`/properties/${reminder.property.id}`} className="hover:underline">
-                      {reminder.property.name}
-                    </Link>
-                  </>
+                  <Link href={`/properties/${reminder.property.id}`} className={recordLink}>
+                    {reminder.property.name}
+                  </Link>
                 )}
-                {reminder.tenant && ` · ${reminder.tenant.fullName}`}
+                {reminder.tenant && <span>{reminder.tenant.fullName}</span>}
               </p>
-            </div>
-
-            {!compact && !readOnly && (
-              <div className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center">
-                <Link href={`/reminders/${reminder.id}/edit`} className="rounded-lg px-2 py-1 text-sm text-blue-700 hover:bg-blue-50">
-                  עריכה
-                </Link>
-                <DeleteButton
-                  id={reminder.id}
-                  action={deleteReminder}
-                  confirmMessage="למחוק את התזכורת?"
-                  variant="ghost"
-                  label="מחיקה"
-                />
+              {/* Status, type and the row's actions share the last line, so the title keeps the full width. */}
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <Badge tone={status.tone}>{status.label}</Badge>
+                <Badge tone="blue">{labelOf(REMINDER_TYPES, reminder.type)}</Badge>
+                {!compact && !readOnly && (
+                  <div className="-me-2 ms-auto flex items-center">
+                    <Link href={`/reminders/${reminder.id}/edit`} className={rowAction}>
+                      עריכה
+                    </Link>
+                    <DeleteButton
+                      id={reminder.id}
+                      action={deleteReminder}
+                      confirmMessage="למחוק את התזכורת?"
+                      variant="ghost"
+                      label="מחיקה"
+                    />
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </li>
         );
       })}

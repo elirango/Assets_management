@@ -64,16 +64,16 @@ export function MeterCalculatorForm({
       <FormError message={state.error} />
 
       <fieldset>
-        <legend className="mb-1.5 block text-sm font-medium text-slate-700">סוג מונה</legend>
-        <div className="grid grid-cols-2 gap-1 rounded-lg bg-slate-100 p-1" role="radiogroup">
+        <legend className="mb-1.5 block text-sm font-medium text-ink-2">סוג מונה</legend>
+        <div className="groove grid grid-cols-2 gap-1 p-1" role="radiogroup">
           {meterTypeOptions.map((option) => {
             const active = option.value === type;
             return (
               <label
                 key={option.value}
                 className={cx(
-                  "flex min-h-10 cursor-pointer items-center justify-center rounded-md text-sm font-medium transition-colors",
-                  active ? "bg-white text-blue-700 shadow-sm" : "text-slate-600 hover:text-slate-900",
+                  "flex min-h-9 cursor-pointer items-center justify-center rounded-input text-sm font-medium transition-colors duration-(--dur-micro) has-focus-visible:outline-2 has-focus-visible:outline-focus",
+                  active ? "edge bg-cotton text-ink" : "text-ink-2 hover:bg-paper-3/70 hover:text-ink",
                 )}
               >
                 <input
@@ -118,7 +118,7 @@ export function MeterCalculatorForm({
             onChange={(event) => setCurrent(event.target.value)}
             aria-invalid={(prevNum != null && currNum != null && currNum < prevNum) || undefined}
             dir="ltr"
-            className={cx("text-end", prevNum != null && currNum != null && currNum < prevNum && "border-red-400")}
+            className="text-end"
           />
         </Field>
       </div>
@@ -163,31 +163,31 @@ export function MeterCalculatorForm({
         role="status"
         aria-live="polite"
         className={cx(
-          "rounded-lg border px-4 py-3 text-sm",
-          bill ? "border-blue-100 bg-blue-50 text-blue-900" : "border-slate-200 bg-slate-50 text-slate-500",
+          "rounded-input border px-4 py-3 text-sm",
+          bill ? "border-rule bg-paper text-ink" : "border-dashed border-rule-2 text-muted",
         )}
       >
         {bill ? (
           <dl className="space-y-1">
             <div className="flex justify-between">
               <dt>צריכה</dt>
-              <dd className="tabular-nums" dir="ltr">
+              <dd className="fig" dir="ltr">
                 {bill.units} {unit}
               </dd>
             </div>
             <div className="flex justify-between">
               <dt>צריכה × תעריף</dt>
-              <dd className="tabular-nums">{formatCurrency(bill.usageCost)}</dd>
+              <dd className="fig">{formatCurrency(bill.usageCost)}</dd>
             </div>
             {showFixedFee && (
               <div className="flex justify-between">
                 <dt>תשלום קבוע</dt>
-                <dd className="tabular-nums">{formatCurrency(bill.fixedFee)}</dd>
+                <dd className="fig">{formatCurrency(bill.fixedFee)}</dd>
               </div>
             )}
-            <div className="flex justify-between border-t border-blue-200 pt-1 text-base font-semibold">
+            <div className="flex justify-between border-t-2 border-ink/80 pt-2 text-base font-medium">
               <dt>סה״כ לחיוב</dt>
-              <dd className="tabular-nums">{formatCurrency(bill.total)}</dd>
+              <dd className="fig">{formatCurrency(bill.total)}</dd>
             </div>
           </dl>
         ) : prevNum != null && currNum != null && currNum < prevNum ? (

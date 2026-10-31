@@ -45,7 +45,7 @@ export default async function RemindersPage() {
       </section>
 
       {done.length > 0 && (
-        <section className="mt-8">
+        <section className="mt-12">
           <SectionTitle>בוצעו לאחרונה</SectionTitle>
           <ReminderList reminders={done} readOnly={!canEdit} />
         </section>

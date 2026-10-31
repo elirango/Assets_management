@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { PaymentMessagePanel } from "@/components/payment-message-panel";
 import { ManualChargeForm } from "@/components/forms/ManualChargeForm";
 import { type LastReadings, MeterCalculatorForm } from "@/components/forms/MeterCalculatorForm";
-import { Badge, Card, DetailRow, LinkButton, PageHeader, SectionTitle } from "@/components/ui";
+import { Badge, Card, DetailRow, LinkButton, PageHeader, SectionTitle, cx, recordLink } from "@/components/ui";
 import { createManualCharge, createMeterReading } from "@/lib/actions/meters";
 import { METER_TYPES, METER_UNITS, type MeterType, isKeyOf, labelOf } from "@/lib/constants";
 import { formatCurrency, formatDate, toDateInputValue, todayUtc } from "@/lib/format";
@@ -51,14 +51,16 @@ export default async function TenantPage({ params }: Props) {
 
   return (
     <>
-      <Link href="/tenants" className="mb-3 inline-block text-sm text-slate-500 hover:text-slate-800">
-        → כל הדיירים
-      </Link>
+      <nav aria-label="ניווט משני" className="mb-2 text-sm">
+        <Link href="/tenants" className={recordLink}>
+          כל הדיירים
+        </Link>
+      </nav>
       <PageHeader
         title={tenant.fullName}
         description={
           tenant.property ? (
-            <Link href={`/properties/${tenant.property.id}`} className="hover:underline">
+            <Link href={`/properties/${tenant.property.id}`} className={recordLink}>
               {tenant.property.name}
             </Link>
           ) : (
@@ -74,23 +76,41 @@ export default async function TenantPage({ params }: Props) {
         }
       />
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
-          {canEdit && (
-            <section>
-              <SectionTitle>מחשבון מונה (חשמל / מים)</SectionTitle>
-              <Card>
-                <MeterCalculatorForm
-                  action={createMeterReading.bind(null, tenant.id)}
-                  lastReadings={lastReadings}
-                  today={toDateInputValue(todayUtc())}
-                />
-              </Card>
-            </section>
-          )}
+      <div className="grid gap-10 lg:grid-cols-3 lg:gap-8">
+        <div className="space-y-12 lg:col-span-2">
+          {/* The tenant's statement leads: what is owed, and the payment message built from it. */}
+          <section>
+            <SectionTitle
+              action={
+                tenant.charges.length > 0 ? (
+                  <p className="fig text-2xl font-medium text-ink">{formatCurrency(unpaidTotal)}</p>
+                ) : undefined
+              }
+            >
+              חיובים פתוחים ({tenant.charges.length})
+            </SectionTitle>
+            <PaymentMessagePanel
+              charges={messageCharges}
+              tenantName={tenant.fullName}
+              tenantPhone={tenant.phone}
+              propertyName={tenant.property?.name ?? null}
+              readOnly={!canEdit}
+            />
+          </section>
 
-          <div className={canEdit ? "grid gap-6 xl:grid-cols-2 xl:items-start" : "grid gap-6"}>
-            {canEdit && (
+          {canEdit && (
+            <div className="grid gap-12 2xl:grid-cols-2 2xl:items-start 2xl:gap-8">
+              <section>
+                <SectionTitle>מחשבון מונה (חשמל / מים)</SectionTitle>
+                <Card>
+                  <MeterCalculatorForm
+                    action={createMeterReading.bind(null, tenant.id)}
+                    lastReadings={lastReadings}
+                    today={toDateInputValue(todayUtc())}
+                  />
+                </Card>
+              </section>
+
               <section>
                 <SectionTitle>הוספת חיוב (ארנונה / ועד בית)</SectionTitle>
                 <Card>
@@ -100,45 +120,26 @@ export default async function TenantPage({ params }: Props) {
                   />
                 </Card>
               </section>
-            )}
-
-            <section>
-              <SectionTitle>
-                חיובים פתוחים ({tenant.charges.length})
-                {tenant.charges.length > 0 && (
-                  <span className="ms-2 text-base font-semibold text-red-700 tabular-nums">
-                    {formatCurrency(unpaidTotal)}
-                  </span>
-                )}
-              </SectionTitle>
-              <PaymentMessagePanel
-                charges={messageCharges}
-                tenantName={tenant.fullName}
-                tenantPhone={tenant.phone}
-                propertyName={tenant.property?.name ?? null}
-                readOnly={!canEdit}
-              />
-            </section>
-          </div>
+            </div>
+          )}
 
           {recentReadings.length > 0 && (
             <section>
               <SectionTitle>קריאות מונה אחרונות</SectionTitle>
-              <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white">
+              <ul className="stock divide-y divide-rule overflow-hidden">
                 {recentReadings.map((reading) => {
                   const type = isKeyOf(METER_TYPES, reading.type) ? (reading.type as MeterType) : null;
                   const unit = type ? METER_UNITS[type] : "";
                   return (
-                    <li key={reading.id} className="flex items-center gap-3 p-3 sm:p-4">
-                      <Badge tone={type === "WATER" ? "blue" : "amber"}>{labelOf(METER_TYPES, reading.type)}</Badge>
-                      <div className="min-w-0 flex-1 text-sm text-slate-600">
-                        <span dir="ltr" className="tabular-nums">
+                    <li key={reading.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 sm:px-5">
+                      <Badge tone="blue">{labelOf(METER_TYPES, reading.type)}</Badge>
+                      <div className="flex min-w-0 flex-1 flex-wrap gap-x-4 text-sm text-muted">
+                        <span dir="ltr" className="fig text-ink-2">
                           {reading.previous} → {reading.current} {unit}
                         </span>
-                        {" · "}
-                        {formatDate(reading.date)}
+                        <span className="fig">{formatDate(reading.date)}</span>
                       </div>
-                      <span className="shrink-0 font-semibold tabular-nums text-slate-900">
+                      <span className="fig shrink-0 text-base font-medium text-ink">
                         {formatCurrency(reading.totalAmount)}
                       </span>
                     </li>
@@ -149,15 +150,15 @@ export default async function TenantPage({ params }: Props) {
           )}
         </div>
 
-        <aside>
+        <aside className="lg:sticky lg:top-10 lg:self-start">
           <Card>
-            <h2 className="mb-2 font-semibold text-slate-800">פרטי הדייר</h2>
-            <dl className="divide-y divide-slate-100">
+            <h2 className="mb-2 text-section text-ink">פרטי הדייר</h2>
+            <dl className="divide-y divide-rule">
               <DetailRow
                 label="טלפון"
                 value={
                   tenant.phone ? (
-                    <a href={`tel:${tenant.phone}`} dir="ltr" className="hover:underline">
+                    <a href={`tel:${tenant.phone}`} dir="ltr" className={cx(recordLink, "fig")}>
                       {tenant.phone}
                     </a>
                   ) : (
@@ -181,7 +182,7 @@ export default async function TenantPage({ params }: Props) {
                       href={tenant.contractUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-blue-700 hover:underline"
+                      className={cx(recordLink, "inline-flex items-center gap-1 underline")}
                     >
                       צפה בחוזה
                       <svg
@@ -204,9 +205,7 @@ export default async function TenantPage({ params }: Props) {
               )}
             </dl>
             {tenant.notes && (
-              <p className="mt-3 whitespace-pre-wrap border-t border-slate-100 pt-3 text-sm text-slate-600">
-                {tenant.notes}
-              </p>
+              <p className="mt-3 whitespace-pre-wrap border-t border-rule pt-3 text-sm text-ink-2">{tenant.notes}</p>
             )}
           </Card>
         </aside>

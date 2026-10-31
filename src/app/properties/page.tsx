@@ -29,26 +29,38 @@ export default async function PropertiesPage() {
           action={canEdit ? <LinkButton href="/properties/new">הוספת נכס</LinkButton> : undefined}
         />
       ) : (
-        <ul className="grid gap-3 sm:grid-cols-2">
+        // Each property is an index card: name and address on top, its counts ruled off below.
+        <ul className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {properties.map((property) => (
             <li key={property.id}>
               <Link
                 href={`/properties/${property.id}`}
-                className="block rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
+                className="press stock flex h-full flex-col hover:edge-lift focus-visible:outline-offset-4"
               >
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start justify-between gap-3 px-5 pt-5 pb-4">
                   <div className="min-w-0">
-                    <p className="truncate text-lg font-semibold text-slate-900">{property.name}</p>
-                    <p className="mt-0.5 text-sm text-slate-500">
+                    <p className="truncate text-lg font-semibold tracking-tight text-ink">{property.name}</p>
+                    <p className="mt-0.5 text-sm text-muted">
                       {property.address}, {property.city}
                     </p>
                   </div>
                   <Badge tone="blue">{labelOf(PROPERTY_TYPES, property.type)}</Badge>
                 </div>
-                <div className="mt-3 flex gap-4 text-sm text-slate-600">
-                  <span>{property._count.tenants} דיירים</span>
-                  <span>{property._count.expenses} הוצאות</span>
-                  {property.rooms != null && <span>{property.rooms} חדרים</span>}
+                <div className="mt-auto grid grid-cols-3 divide-x divide-rule border-t border-rule text-sm">
+                  <span className="px-5 py-3 text-muted">
+                    <span className="fig block text-base text-ink">{property._count.tenants}</span>
+                    דיירים
+                  </span>
+                  <span className="px-5 py-3 text-muted">
+                    <span className="fig block text-base text-ink">{property._count.expenses}</span>
+                    הוצאות
+                  </span>
+                  {property.rooms != null && (
+                    <span className="px-5 py-3 text-muted">
+                      <span className="fig block text-base text-ink">{property.rooms}</span>
+                      חדרים
+                    </span>
+                  )}
                 </div>
               </Link>
             </li>

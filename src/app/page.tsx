@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ChargeList } from "@/components/charge-list";
 import { ReminderList } from "@/components/reminder-list";
-import { Badge, Card, EmptyState, LinkButton, PageHeader, SectionTitle } from "@/components/ui";
+import { Badge, EmptyState, LinkButton, PageHeader, SectionTitle, cx, recordLink } from "@/components/ui";
 import { addDays, daysBetween, formatCurrency, formatDate, todayUtc } from "@/lib/format";
 import { isAdmin } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
@@ -45,18 +45,40 @@ export default async function DashboardPage() {
 
   return (
     <>
-      <PageHeader title="לוח בקרה" description={`היום ${formatDate(today)}`} />
+      <PageHeader
+        title="לוח בקרה"
+        description={`היום ${formatDate(today)}`}
+        action={
+          canEdit ? (
+            <div className="flex flex-wrap gap-2">
+              <LinkButton href="/expenses/new" variant="secondary" className="px-3">
+                + הוצאה
+              </LinkButton>
+              <LinkButton href="/reminders/new" variant="secondary" className="px-3">
+                + תזכורת
+              </LinkButton>
+              <LinkButton href="/tenants/new" variant="secondary" className="px-3">
+                + דייר
+              </LinkButton>
+              <LinkButton href="/properties/new" variant="secondary" className="px-3">
+                + נכס
+              </LinkButton>
+            </div>
+          ) : undefined
+        }
+      />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="נכסים" value={propertyCount} href="/properties" />
-        <StatCard label="דיירים" value={tenantCount} href="/tenants" />
-        <StatCard
+      {/* The four figures share one ruled sheet: each cell links to where the figure comes from. */}
+      <div className="stock grid grid-cols-2 gap-px overflow-hidden bg-rule sm:grid-cols-4">
+        <StatCell label="נכסים" value={propertyCount} href="/properties" />
+        <StatCell label="דיירים" value={tenantCount} href="/tenants" />
+        <StatCell
           label="חובות פתוחים"
           value={formatCurrency(openDebt)}
           href="#open-charges"
           accent={openCharges.length > 0 ? `${openCharges.length} חיובים` : undefined}
         />
-        <StatCard
+        <StatCell
           label="תזכורות באיחור"
           value={overdueCount}
           href="/reminders"
@@ -64,100 +86,91 @@ export default async function DashboardPage() {
         />
       </div>
 
-      {canEdit && (
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <LinkButton href="/expenses/new" variant="secondary">
-            + הוצאה
-          </LinkButton>
-          <LinkButton href="/reminders/new" variant="secondary">
-            + תזכורת
-          </LinkButton>
-          <LinkButton href="/tenants/new" variant="secondary">
-            + דייר
-          </LinkButton>
-          <LinkButton href="/properties/new" variant="secondary">
-            + נכס
-          </LinkButton>
-        </div>
-      )}
-
-      {/* Section 1 */}
-      <section className="mt-8">
-        <SectionTitle
-          action={
-            <Link href="/reminders" className="text-sm text-blue-700 hover:underline">
-              לכל התזכורות
-            </Link>
-          }
-        >
-          תזכורות קרובות
-        </SectionTitle>
-        {overdueCount > 0 && (
-          <p className="mb-3 text-sm text-red-700">
-            <Link href="/reminders" className="hover:underline">
-              {overdueCount === 1 ? "תזכורת אחת באיחור" : `${overdueCount} תזכורות באיחור`} — לצפייה ברשימה המלאה
-            </Link>
-          </p>
-        )}
-        {upcomingReminders.length === 0 ? (
-          <EmptyState
-            title="אין תזכורות קרובות"
-            description="הוסיפו תזכורת להפקדת צ׳ק, סיום חוזה או קריאת מונה."
-            action={canEdit ? <LinkButton href="/reminders/new">הוספת תזכורת</LinkButton> : undefined}
-          />
-        ) : (
-          <ReminderList reminders={upcomingReminders} readOnly={!canEdit} />
-        )}
-      </section>
-
-      {/* Section 2 */}
-      <section className="mt-8">
-        <SectionTitle>חוזים לקראת סיום</SectionTitle>
-        {expiringContracts.length === 0 ? (
-          <EmptyState title={`אין חוזים שמסתיימים ב-${CONTRACT_HORIZON_DAYS} הימים הקרובים`} />
-        ) : (
-          <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white">
-            {expiringContracts.map((tenant) => {
-              const days = daysBetween(today, tenant.contractEnd!);
-              return (
-                <li key={tenant.id} className="flex items-center justify-between gap-3 p-3 sm:p-4">
-                  <div className="min-w-0">
-                    <Link href={`/tenants/${tenant.id}`} className="font-medium text-slate-900 hover:underline">
-                      {tenant.fullName}
-                    </Link>
-                    <p className="text-sm text-slate-500">
-                      {tenant.property ? tenant.property.name : "ללא נכס"} · מסתיים {formatDate(tenant.contractEnd)}
-                    </p>
-                  </div>
-                  <Badge tone={days <= 14 ? "red" : "amber"}>
-                    {days === 0 ? "היום" : days === 1 ? "מחר" : `בעוד ${days} ימים`}
-                  </Badge>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
-
-      {/* Section 3 */}
-      <section id="open-charges" className="mt-8 scroll-mt-20">
-        <SectionTitle>
-          חובות פתוחים ({openCharges.length})
-          {openCharges.length > 0 && (
-            <span className="ms-2 text-base font-semibold text-red-700 tabular-nums">{formatCurrency(openDebt)}</span>
+      <div className="mt-10 grid gap-10 lg:grid-cols-5 lg:gap-8">
+        {/* Section 3, the dashboard's lead: the open-debts ledger. */}
+        <section id="open-charges" className="scroll-mt-20 lg:col-span-3">
+          <SectionTitle
+            action={
+              openCharges.length > 0 ? (
+                <p className="fig text-2xl font-medium text-ink">{formatCurrency(openDebt)}</p>
+              ) : undefined
+            }
+          >
+            חובות פתוחים ({openCharges.length})
+          </SectionTitle>
+          {openCharges.length === 0 ? (
+            <EmptyState title="אין חובות פתוחים" description="חיובי ארנונה, ועד בית ומונים שטרם שולמו יופיעו כאן." />
+          ) : (
+            <ChargeList charges={openCharges} showTenant readOnly={!canEdit} />
           )}
-        </SectionTitle>
-        {openCharges.length === 0 ? (
-          <EmptyState title="אין חובות פתוחים" description="חיובי ארנונה, ועד בית ומונים שטרם שולמו יופיעו כאן." />
-        ) : (
-          <ChargeList charges={openCharges} showTenant readOnly={!canEdit} />
-        )}
-      </section>
+        </section>
+
+        <div className="space-y-10 lg:col-span-2">
+          {/* Section 1 */}
+          <section>
+            <SectionTitle
+              action={
+                <Link href="/reminders" className={cx(recordLink, "text-sm")}>
+                  לכל התזכורות
+                </Link>
+              }
+            >
+              תזכורות קרובות
+            </SectionTitle>
+            {overdueCount > 0 && (
+              <p className="mb-3 text-sm text-accent-2">
+                <Link href="/reminders" className="underline-offset-4 hover:underline">
+                  {overdueCount === 1 ? "תזכורת אחת באיחור" : `${overdueCount} תזכורות באיחור`}, לצפייה ברשימה המלאה
+                </Link>
+              </p>
+            )}
+            {upcomingReminders.length === 0 ? (
+              <EmptyState
+                title="אין תזכורות קרובות"
+                description="הוסיפו תזכורת להפקדת צ׳ק, סיום חוזה או קריאת מונה."
+                action={canEdit ? <LinkButton href="/reminders/new">הוספת תזכורת</LinkButton> : undefined}
+              />
+            ) : (
+              <ReminderList reminders={upcomingReminders} readOnly={!canEdit} />
+            )}
+          </section>
+
+          {/* Section 2 */}
+          <section>
+            <SectionTitle>חוזים לקראת סיום</SectionTitle>
+            {expiringContracts.length === 0 ? (
+              <EmptyState title={`אין חוזים שמסתיימים ב-${CONTRACT_HORIZON_DAYS} הימים הקרובים`} />
+            ) : (
+              <ul className="stock divide-y divide-rule overflow-hidden">
+                {expiringContracts.map((tenant) => {
+                  const days = daysBetween(today, tenant.contractEnd!);
+                  return (
+                    <li key={tenant.id} className="flex items-center justify-between gap-3 px-4 py-3 sm:px-5">
+                      <div className="min-w-0">
+                        <Link href={`/tenants/${tenant.id}`} className="font-medium text-ink underline-offset-4 hover:underline">
+                          {tenant.fullName}
+                        </Link>
+                        <p className="flex flex-wrap gap-x-3 text-sm text-muted">
+                          <span>{tenant.property ? tenant.property.name : "ללא נכס"}</span>
+                          <span>מסתיים {formatDate(tenant.contractEnd)}</span>
+                        </p>
+                      </div>
+                      <Badge tone={days <= 14 ? "red" : "amber"}>
+                        {days === 0 ? "היום" : days === 1 ? "מחר" : `בעוד ${days} ימים`}
+                      </Badge>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+        </div>
+      </div>
     </>
   );
 }
 
-function StatCard({
+function StatCell({
   label,
   value,
   href,
@@ -169,12 +182,13 @@ function StatCard({
   accent?: string;
 }) {
   return (
-    <Link href={href} className="block">
-      <Card className="h-full transition-shadow hover:shadow-md">
-        <p className="text-sm text-slate-500">{label}</p>
-        <p className="mt-1 text-2xl font-bold tabular-nums text-slate-900">{value}</p>
-        {accent && <p className="mt-1 text-xs font-medium text-red-600">{accent}</p>}
-      </Card>
+    <Link
+      href={href}
+      className="group flex flex-col bg-cotton px-4 py-4 transition-colors duration-(--dur-micro) hover:bg-paper focus-visible:-outline-offset-2 sm:px-5 sm:py-5"
+    >
+      <span className="text-sm text-muted group-hover:text-ink-2">{label}</span>
+      <span className="fig mt-1 text-2xl font-medium text-ink">{value}</span>
+      {accent && <span className="mt-0.5 text-sm text-accent-2">{accent}</span>}
     </Link>
   );
 }

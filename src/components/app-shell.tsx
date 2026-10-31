@@ -21,7 +21,8 @@ function isActive(pathname: string, href: string) {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
 }
 
-// Mobile: top bar + fixed bottom tab bar. Desktop (md+): fixed sidebar on the start side.
+// Mobile: top bar + fixed bottom tab bar. Desktop (md+): fixed sidebar on the start side, on the
+// second neutral; the current destination is a cotton card lifted off it.
 // Without a signed-in user (login page) the children render bare, with no navigation.
 export function AppShell({ children, user }: { children: ReactNode; user: ShellUser | null }) {
   const pathname = usePathname();
@@ -32,9 +33,9 @@ export function AppShell({ children, user }: { children: ReactNode; user: ShellU
 
   return (
     <div className="min-h-dvh">
-      <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur md:hidden">
+      <header className="sticky top-0 z-20 border-b border-rule bg-paper-2/95 backdrop-blur md:hidden">
         <div className="flex h-14 items-center justify-between gap-3 px-4">
-          <Link href="/" className="text-lg font-bold text-slate-900">
+          <Link href="/" className="text-lg font-semibold tracking-tight text-ink">
             ניהול נכסים
           </Link>
           <div className="flex items-center gap-2">
@@ -44,47 +45,48 @@ export function AppShell({ children, user }: { children: ReactNode; user: ShellU
         </div>
       </header>
 
-      <aside className="fixed inset-y-0 start-0 z-20 hidden w-60 flex-col border-e border-slate-200 bg-white md:flex">
-        <div className="flex h-16 items-center px-6">
-          <Link href="/" className="text-xl font-bold text-slate-900">
+      <aside className="fixed inset-y-0 start-0 z-20 hidden w-60 flex-col border-e border-rule bg-paper-2 md:flex">
+        <div className="flex h-20 items-center px-6">
+          <Link href="/" className="text-xl font-semibold tracking-tight text-ink">
             ניהול נכסים
           </Link>
         </div>
-        <nav className="flex-1 space-y-1 px-3">
+        <nav className="flex-1 space-y-1 px-3" aria-label="ניווט ראשי">
           {navItems.map(({ href, label, icon: Icon }) => {
             const active = isActive(pathname, href);
             return (
               <Link
                 key={href}
                 href={href}
+                aria-current={active ? "page" : undefined}
                 className={cx(
-                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                  active ? "bg-blue-50 text-blue-700" : "text-slate-700 hover:bg-slate-100",
+                  "flex min-h-10 items-center gap-3 rounded-card px-3 text-base font-medium transition-colors duration-(--dur-micro)",
+                  active ? "edge bg-cotton text-ink" : "text-ink-2 hover:bg-paper-3/70 hover:text-ink",
                 )}
               >
-                <Icon className="size-5" />
+                <Icon className={cx("size-5", active ? "text-ink" : "text-muted")} />
                 {label}
               </Link>
             );
           })}
         </nav>
-        <div className="border-t border-slate-200 px-4 py-3">
-          <p className="truncate text-sm font-medium text-slate-800" title={user.email ?? undefined}>
+        <div className="border-t border-rule px-4 py-4">
+          <p className="truncate text-sm font-medium text-ink" title={user.email ?? undefined}>
             {user.name ?? user.email}
           </p>
           <div className="mt-1 flex items-center justify-between gap-2">
-            {viewer ? <ViewerBadge /> : <span className="text-xs text-slate-500">מנהל</span>}
+            {viewer ? <ViewerBadge /> : <span className="text-xs text-muted">מנהל</span>}
             <SignOutButton />
           </div>
         </div>
       </aside>
 
       <div className="md:ps-60">
-        <main className="mx-auto max-w-5xl px-4 pb-24 pt-4 md:px-8 md:pb-10 md:pt-8">{children}</main>
+        <main className="mx-auto max-w-6xl px-4 pb-28 pt-6 md:px-10 md:pb-16 md:pt-10">{children}</main>
       </div>
 
       <nav
-        className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden"
+        className="fixed inset-x-0 bottom-0 z-20 border-t border-rule bg-paper-2 pb-[env(safe-area-inset-bottom)] md:hidden"
         aria-label="ניווט ראשי"
       >
         <ul className="grid grid-cols-6">
@@ -95,8 +97,10 @@ export function AppShell({ children, user }: { children: ReactNode; user: ShellU
                 <Link
                   href={href}
                   className={cx(
-                    "flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-medium",
-                    active ? "text-blue-700" : "text-slate-500",
+                    "relative flex min-h-14 flex-col items-center justify-center gap-0.5 text-xs font-medium transition-colors duration-(--dur-micro)",
+                    active
+                      ? "text-ink before:absolute before:inset-x-3 before:top-0 before:h-0.5 before:rounded-b-sm before:bg-ink"
+                      : "text-muted hover:text-ink-2",
                   )}
                   aria-current={active ? "page" : undefined}
                 >
@@ -114,7 +118,7 @@ export function AppShell({ children, user }: { children: ReactNode; user: ShellU
 
 function ViewerBadge() {
   return (
-    <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">
+    <span className="inline-flex items-center rounded-input border border-ink-2/70 px-2 py-0.5 text-xs font-medium text-ink">
       צפייה בלבד
     </span>
   );
@@ -126,7 +130,7 @@ function SignOutButton({ compact = false }: { compact?: boolean }) {
       <button
         type="submit"
         className={cx(
-          "rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+          "rounded-input text-ink-2 transition-colors duration-(--dur-micro) hover:bg-paper-3/70 hover:text-ink active:bg-paper-3",
           compact ? "min-h-9 px-2 text-sm" : "min-h-8 px-2 text-xs",
         )}
       >

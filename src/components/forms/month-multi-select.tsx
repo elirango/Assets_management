@@ -58,7 +58,7 @@ export function MonthMultiSelect({
 
   return (
     <div ref={rootRef} className="relative">
-      <span id={labelId} className="mb-1.5 block text-sm font-medium text-slate-700">
+      <span id={labelId} className="mb-1.5 block text-sm font-medium text-ink-2">
         {label}
       </span>
       <input type="hidden" name={name} value={value.join(",")} />
@@ -70,11 +70,11 @@ export function MonthMultiSelect({
         aria-expanded={open}
         aria-controls={panelId}
         aria-labelledby={labelId}
-        className="flex min-h-11 w-full items-center justify-between gap-2 rounded-lg border border-slate-300 bg-white px-3 text-start text-base text-slate-900 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
+        className="flex min-h-11 w-full items-center justify-between gap-2 rounded-input border border-muted/60 bg-cotton px-3 text-start text-base text-ink transition-colors duration-(--dur-micro) hover:border-muted focus-visible:border-focus focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus/40 md:min-h-10"
       >
-        <span className={cx("truncate", !summary && "text-slate-400")}>{summary || "בחירת חודשים"}</span>
+        <span className={cx("truncate", !summary && "text-muted/80")}>{summary || "בחירת חודשים"}</span>
         <svg
-          className={cx("size-4 shrink-0 text-slate-500 transition-transform", open && "rotate-180")}
+          className={cx("size-4 shrink-0 text-muted motion-safe:transition-transform motion-safe:duration-(--dur-short)", open && "rotate-180")}
           viewBox="0 0 20 20"
           fill="none"
           stroke="currentColor"
@@ -84,14 +84,14 @@ export function MonthMultiSelect({
           <path strokeLinecap="round" strokeLinejoin="round" d="m5 8 5 5 5-5" />
         </svg>
       </button>
-      {hint && <span className="mt-1 block text-xs text-slate-500">{hint}</span>}
+      {hint && <span className="mt-1.5 block text-xs leading-normal text-muted">{hint}</span>}
 
       {open && (
         <div
           id={panelId}
           role="group"
           aria-labelledby={labelId}
-          className="absolute inset-x-0 top-full z-20 mt-1 rounded-lg border border-slate-200 bg-white p-2 shadow-lg"
+          className="stock absolute inset-x-0 top-full z-20 mt-1.5 p-2 shadow-[var(--edge-stock),var(--cast-stock-lift)]"
         >
           <div className="grid grid-cols-3 gap-1">
             {HEBREW_MONTHS.map((monthName, index) => {
@@ -101,27 +101,27 @@ export function MonthMultiSelect({
                 <label
                   key={month}
                   className={cx(
-                    "flex min-h-10 cursor-pointer items-center gap-2 rounded-md px-2 text-sm",
-                    checked ? "bg-blue-50 text-blue-800" : "text-slate-700 hover:bg-slate-50",
+                    "flex min-h-10 cursor-pointer items-center gap-2 rounded-input px-2 text-sm transition-colors duration-(--dur-micro)",
+                    checked ? "bg-paper-2 font-medium text-ink" : "text-ink-2 hover:bg-paper",
                   )}
                 >
                   <input
                     type="checkbox"
                     checked={checked}
                     onChange={() => toggle(month)}
-                    className="size-4 shrink-0 rounded border-slate-300 accent-blue-600"
+                    className="size-4 shrink-0 accent-ink"
                   />
                   {monthName}
                 </label>
               );
             })}
           </div>
-          <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-2 text-sm">
+          <div className="mt-2 flex items-center justify-between border-t border-rule pt-2 text-sm">
             <button
               type="button"
               onClick={() => onChange([])}
               disabled={value.length === 0}
-              className="min-h-9 rounded-md px-2 text-slate-600 hover:bg-slate-100 disabled:opacity-50"
+              className="min-h-9 rounded-input px-2 text-ink-2 transition-colors duration-(--dur-micro) hover:bg-paper-2 active:bg-paper-3 disabled:cursor-not-allowed disabled:opacity-55"
             >
               ניקוי
             </button>
@@ -131,7 +131,7 @@ export function MonthMultiSelect({
                 setOpen(false);
                 triggerRef.current?.focus();
               }}
-              className="min-h-9 rounded-md px-3 font-medium text-blue-700 hover:bg-blue-50"
+              className="min-h-9 rounded-input px-3 font-medium text-ink transition-colors duration-(--dur-micro) hover:bg-paper-2 active:bg-paper-3"
             >
               סגירה
             </button>
