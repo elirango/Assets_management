@@ -117,6 +117,8 @@ model MeterReading {
   fixedFee    Float    @default(0)
   totalAmount Float
   date        DateTime
+  /// Meter photo on Vercel Blob (public, random-suffixed URL); null when entered by hand or storage is off.
+  imageUrl    String?
   createdAt   DateTime @default(now())
 
   tenantId String

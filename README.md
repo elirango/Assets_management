@@ -63,6 +63,10 @@ src/
     form.ts              # FormData parsing helpers + ActionState
     format.ts            # he-IL date/currency formatting
     meters.ts            # Utility bill formula ((current − previous) × rate + fixed fee)
+    meterOcr.ts          # Meter photo recognition: prompt, Gemini JSON schema, answer parser (pure)
+    gemini.ts            # Server-only Gemini REST call for a meter photo (GEMINI_API_KEY)
+    meterPhotoStorage.ts # Server-only Vercel Blob upload of the meter photo (BLOB_READ_WRITE_TOKEN)
+    meterPhotoClient.ts  # Browser-only: scales a photo to 1600px JPEG before upload
     charges.ts           # Manual HOA / property-tax charges (months × monthly rate)
     messageGenerator.ts  # Bilingual payment message text; pairs meter charges with their readings
     contract.ts          # Contract end default + monthly cheque reminder schedule (UTC-safe)
@@ -83,5 +87,6 @@ Sign-in is Google-only and limited to two accounts set by environment variables:
 - **Forms:** server actions return `{ error, values }` on validation failure; forms re-seed inputs from `values` because React resets the form after an action.
 - **Contracts:** `src/lib/contract.ts` derives the end date from a start date and a duration in months (default 12; "משך חוזה" in the form, not stored) as start + N months − 1 day, month-end aware, plus the cheque schedule (one `CHECK_DEPOSIT` reminder per month on the tenant's `paymentDay`, 1–31 clamped to short months, default 10) and one renewal reminder (`CONTRACT_END`, "חידוש חוזה - <name>") 60 days before the end. All created with the tenant in one transaction; editing the period replaces the tenant's open cheque and renewal reminders.
 - **Utility bills:** the meter calculator on the tenant page saves a `MeterReading` and its `Charge` in one transaction; the fixed fee applies to electricity only. HOA (ועד בית, default ₪40/month) and property-tax (ארנונה) charges are added by hand as months × rate. Charges stay listed until marked paid. On the tenant page, selected charges can be turned into a Hebrew/English WhatsApp payment message (meter charges include previous/current readings and consumption).
+- **Meter photos:** the calculator's photo button scales the image in the browser, sends it to the `recognizeMeterPhoto` server action (Gemini, free tier) and fills in the meter type and current reading, highlighted until edited. The previous reading, rate and fixed fee come from the tenant's last reading of that type. Nothing is saved until the form is submitted; then the photo goes to Vercel Blob and its URL to `MeterReading.imageUrl`. See Step 4d of the deployment guide.
 - **Contract link:** `Tenant.contractUrl` (optional http/https URL, e.g. Google Drive) shows as "צפה בחוזה" on the tenant page.
 - **Deletes:** `Property` cascades to its expenses and reminders; tenants are detached (`propertyId = null`).

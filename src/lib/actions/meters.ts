@@ -10,6 +10,34 @@ import { todayUtc } from "@/lib/format";
 import { MAX_CHARGE_MONTHS, calculateManualCharge, isValidMonths, manualChargeDescription } from "@/lib/charges";
 import { parseMonthsField } from "@/lib/billingPeriod";
 import { calculateMeterBill, meterChargeDescription, meterFixedFeeApplies } from "@/lib/meters";
+import { METER_PHOTO_MAX_BYTES, type RecognizeMeterResult, isAllowedMeterPhotoType } from "@/lib/meterOcr";
+import { recognizeMeterImage } from "@/lib/gemini";
+import { isMeterPhotoStorageConfigured, storeMeterPhoto } from "@/lib/meterPhotoStorage";
+
+/** The uploaded meter photo from a form, or null when none was attached (or it is unusable). */
+function getPhoto(formData: FormData): File | null {
+  const value = formData.get("photo");
+  return value instanceof File && value.size > 0 ? value : null;
+}
+
+function photoProblem(photo: File): string | null {
+  if (!isAllowedMeterPhotoType(photo.type)) return "סוג הקובץ אינו נתמך. יש להעלות תמונה (JPG, PNG, WEBP או HEIC).";
+  if (photo.size > METER_PHOTO_MAX_BYTES) return "התמונה גדולה מדי (עד 4MB).";
+  return null;
+}
+
+/**
+ * Reads a meter photo with Gemini and returns the recognised reading for the user to review.
+ * Saves nothing: the reading is only stored when the calculator form is submitted.
+ */
+export async function recognizeMeterPhoto(formData: FormData): Promise<RecognizeMeterResult> {
+  await requireAdmin();
+  const photo = getPhoto(formData);
+  if (!photo) return { ok: false, error: "לא התקבלה תמונה." };
+  const problem = photoProblem(photo);
+  if (problem) return { ok: false, error: problem };
+  return recognizeMeterImage(photo);
+}
 
 function revalidateTenant(tenantId: string, propertyId?: string | null) {
   revalidatePath("/");
@@ -48,9 +76,33 @@ export async function createMeterReading(
 
   const bill = calculateMeterBill({ type, previous, current, rate, fixedFee });
 
+  // The meter photo (optional) is kept as evidence when Blob storage is configured.
+  const photo = getPhoto(formData);
+  let imageUrl: string | null = null;
+  if (photo && isMeterPhotoStorageConfigured()) {
+    const problem = photoProblem(photo);
+    if (problem) return failure(problem, formData);
+    try {
+      imageUrl = await storeMeterPhoto(tenantId, type, date, photo);
+    } catch (error) {
+      console.error("Meter photo upload failed", error);
+      return failure("שמירת התמונה נכשלה. נסו שוב, או הסירו את התמונה ושמרו בלעדיה.", formData);
+    }
+  }
+
   await prisma.$transaction(async (tx) => {
     await tx.meterReading.create({
-      data: { tenantId, type, previous, current, rate, fixedFee: bill.fixedFee, totalAmount: bill.total, date },
+      data: {
+        tenantId,
+        type,
+        previous,
+        current,
+        rate,
+        fixedFee: bill.fixedFee,
+        totalAmount: bill.total,
+        date,
+        imageUrl,
+      },
     });
     await tx.charge.create({
       data: { tenantId, amount: bill.total, description: meterChargeDescription(type, date), date, isPaid: false },

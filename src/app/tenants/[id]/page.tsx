@@ -5,7 +5,9 @@ import { PaymentMessagePanel } from "@/components/payment-message-panel";
 import { ManualChargeForm } from "@/components/forms/ManualChargeForm";
 import { type LastReadings, MeterCalculatorForm } from "@/components/forms/MeterCalculatorForm";
 import { Badge, Card, DetailRow, LinkButton, PageHeader, SectionTitle, cx, recordLink } from "@/components/ui";
-import { createManualCharge, createMeterReading } from "@/lib/actions/meters";
+import { createManualCharge, createMeterReading, recognizeMeterPhoto } from "@/lib/actions/meters";
+import { isMeterRecognitionConfigured } from "@/lib/gemini";
+import { isMeterPhotoStorageConfigured } from "@/lib/meterPhotoStorage";
 import { METER_TYPES, METER_UNITS, type MeterType, isKeyOf, labelOf } from "@/lib/constants";
 import { formatCurrency, formatDate, toDateInputValue, todayUtc } from "@/lib/format";
 import { attachMeterReadings } from "@/lib/messageGenerator";
@@ -41,11 +43,11 @@ export default async function TenantPage({ params }: Props) {
   const messageCharges = attachMeterReadings(tenant.charges, tenant.meterReadings);
   const recentReadings = tenant.meterReadings.slice(0, 6);
 
-  // Newest `current` per meter type seeds the calculator's "previous" field.
+  // Newest reading per meter type seeds the calculator's previous reading, rate and fixed fee.
   const lastReadings: LastReadings = {};
   for (const reading of tenant.meterReadings) {
     if (isKeyOf(METER_TYPES, reading.type) && lastReadings[reading.type] == null) {
-      lastReadings[reading.type] = reading.current;
+      lastReadings[reading.type] = { current: reading.current, rate: reading.rate, fixedFee: reading.fixedFee };
     }
   }
 
@@ -105,8 +107,11 @@ export default async function TenantPage({ params }: Props) {
                 <Card>
                   <MeterCalculatorForm
                     action={createMeterReading.bind(null, tenant.id)}
+                    recognize={recognizeMeterPhoto}
                     lastReadings={lastReadings}
                     today={toDateInputValue(todayUtc())}
+                    recognitionEnabled={isMeterRecognitionConfigured()}
+                    photoStorageEnabled={isMeterPhotoStorageConfigured()}
                   />
                 </Card>
               </section>
@@ -138,6 +143,16 @@ export default async function TenantPage({ params }: Props) {
                           {reading.previous} → {reading.current} {unit}
                         </span>
                         <span className="fig">{formatDate(reading.date)}</span>
+                        {reading.imageUrl && (
+                          <a
+                            href={reading.imageUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={cx(recordLink, "underline")}
+                          >
+                            תמונת מונה
+                          </a>
+                        )}
                       </div>
                       <span className="fig shrink-0 text-base font-medium text-ink">
                         {formatCurrency(reading.totalAmount)}

@@ -17,6 +17,8 @@ export type MessageCharge = {
     current: number;
     units: number;
     unitLabel: string;
+    /** Meter photo kept with the reading, quoted in the message as evidence. */
+    imageUrl?: string | null;
   } | null;
 };
 
@@ -29,7 +31,15 @@ export type MessageOptions = {
 };
 
 type MinimalCharge = { id: string; description: string; amount: number; date: Date };
-type MinimalReading = { id: string; type: string; previous: number; current: number; totalAmount: number; date: Date };
+type MinimalReading = {
+  id: string;
+  type: string;
+  previous: number;
+  current: number;
+  totalAmount: number;
+  date: Date;
+  imageUrl?: string | null;
+};
 
 /**
  * Charge and MeterReading are not linked in the schema. A meter charge is created in the same
@@ -60,6 +70,7 @@ export function attachMeterReadings(charges: MinimalCharge[], readings: MinimalR
         current: reading.current,
         units: roundMoney(reading.current - reading.previous),
         unitLabel: METER_UNITS[type],
+        imageUrl: reading.imageUrl ?? null,
       },
     };
   });
@@ -111,19 +122,21 @@ export function generatePaymentMessage(charges: MessageCharge[], options: Messag
 
   for (const charge of charges) {
     if (charge.meter) {
-      const { type, previous, current, units } = charge.meter;
+      const { type, previous, current, units, imageUrl } = charge.meter;
       if (language === "he") {
         lines.push(`${METER_ICON[type]} ${charge.description}`);
         lines.push(`קריאה קודמת: ${formatNumber(previous)} ${METER_UNITS[type]}`);
         lines.push(`קריאה נוכחית: ${formatNumber(current)} ${METER_UNITS[type]}`);
         lines.push(`צריכה: ${formatNumber(units)} ${METER_UNITS[type]}`);
         lines.push(`סכום: ${formatMessageAmount(charge.amount)}`);
+        if (imageUrl) lines.push(`📷 תמונת המונה: ${imageUrl}`);
       } else {
         lines.push(`${METER_ICON[type]} ${METER_NAME_EN[type]} bill (${formatMessageDate(charge.date, "en")})`);
         lines.push(`Previous reading: ${formatNumber(previous)} ${UNIT_EN[type]}`);
         lines.push(`Current reading: ${formatNumber(current)} ${UNIT_EN[type]}`);
         lines.push(`Consumption: ${formatNumber(units)} ${UNIT_EN[type]}`);
         lines.push(`Amount: ${formatMessageAmount(charge.amount)}`);
+        if (imageUrl) lines.push(`📷 Meter photo: ${imageUrl}`);
       }
     } else {
       // A billing period goes in parentheses right after the charge name, on the same line.

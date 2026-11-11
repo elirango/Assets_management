@@ -121,6 +121,19 @@ curl -H "Authorization: Bearer $CRON_SECRET" https://<your-domain>/api/cron/remi
 
 The JSON response reports `checkDeposits`, `contractRenewals`, whether an email was `sent`, and the Resend `emailId`. Runs are also listed under Vercel → Project → **Settings → Cron Jobs**.
 
+## Step 4d — Meter photo recognition (Gemini) and photo storage (Vercel Blob)
+
+On the tenant page the meter calculator can take a photo of an electricity or water meter. The photo is sent to Google Gemini, which returns the meter type and reading; you check them against the photo before saving. Both parts are optional and switch on by environment variable:
+
+| Variable | Value |
+| --- | --- |
+| `GEMINI_API_KEY` | Free key from [aistudio.google.com/apikey](https://aistudio.google.com/apikey) (no billing account needed). Without it the photo button still attaches the photo, but nothing is recognised |
+| `GEMINI_MODEL` (optional) | Defaults to `gemini-3.8-flash`. Set it when Google retires that model (the error message names the model) |
+| `GEMINI_FALLBACK_MODEL` (optional) | Defaults to `gemini-3.5-flash-lite`. Tried when the main model is overloaded, out of free quota or takes longer than 15s; `none` disables it |
+| `BLOB_READ_WRITE_TOKEN` | Created automatically when you add a Blob store: Vercel → Project → **Storage → Create → Blob**, connect it to the project, then `npx vercel env pull`. Without it photos are used for recognition only and not kept |
+
+Free tier notes: Gemini's free tier is rate-limited (a few requests per minute) and Google may use free-tier inputs to improve its products. If the limit is hit, the app says so and you can type the reading. Stored photos are public URLs with a random suffix, so they can be quoted in the WhatsApp payment message.
+
 ## Step 5 — Deploy to production
 
 ```bash
